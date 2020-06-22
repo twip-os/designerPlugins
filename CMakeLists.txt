@@ -5,6 +5,20 @@ cmake_minimum_required(VERSION 3.1...3.15)
 option(BUILD_TARGET64 "Build for 64 bit target if set to ON or 32 bit if set to OFF." ON)
 set(ITOM_SDK_DIR NOTFOUND CACHE PATH "path of SDK subfolder of itom root (build) directory")
 
+
+set(ITOM_3RDPARTYFOLDER CACHE PATH 
+    "Path to the AIO 3rdParty Folder, containing cmake/itom_3rdParty.cmake")
+if(ITOM_3RDPARTYFOLDER)
+    include(${ITOM_3RDPARTYFOLDER}/cmake/itom_3rdParty.cmake)
+endif()
+
+set(ITOM_3RDPARTYPCLFOLDER CACHE PATH 
+    "Path to the AIO 3rdPartyPCL Folder, containing cmake/itom_3rdPartyPCL.cmake")
+if(ITOM_3RDPARTYPCLFOLDER)
+    include(${ITOM_3RDPARTYPCLFOLDER}/cmake/itom_3rdPartyPCL.cmake)
+endif()
+
+
 #this is to automatically detect the SDK subfolder of the itom build directory.
 if(NOT ITOM_SDK_DIR)
     find_path(ITOM_SDK_DIR "cmake/itom_sdk.cmake"
