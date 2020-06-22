@@ -97,7 +97,7 @@ public:
         m_pData(NULL)
     {}
     
-    InternalData *m_pData;
+    PlotCanvas::InternalData *m_pData;
 
     //QHash<QObject*,ito::uint32> m_childFigures;
     ChildPlotItem m_volumeCutChildPlot; /*Line cut plot in the 2D plane, spanned by the last two dimensions and displayed as 1D plot*/
@@ -122,7 +122,7 @@ void Itom2dQwtPlot::constructor()
     addOutputParam(new ito::Param("sourceout", ito::ParamBase::DObjPtr, NULL, QObject::tr("shallow copy of input source object").toLatin1().data()));
 
 
-    d->m_pData = new InternalData();
+    d->m_pData = new PlotCanvas::InternalData();
     
     //init internal data
     d->m_pData->m_dataType = ito::tFloat64;
@@ -669,6 +669,27 @@ void Itom2dQwtPlot::setOverlayColorMap(const QString &name)
     if (name != "" && m_pContent)
     {
         m_pContent->setOverlayColorMap(name);
+    }
+
+    updatePropertyDock();
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+Itom2dQwtPlot::GridStyle Itom2dQwtPlot::getGrid(void) const
+{
+    if (m_pContent)
+    {
+        return m_pContent->gridStyle();
+    }
+    return GridNo;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+void Itom2dQwtPlot::setGrid(const Itom2dQwtPlot::GridStyle &gridStyle)
+{
+    if (m_pContent)
+    {
+        m_pContent->setGridStyle(gridStyle);
     }
 
     updatePropertyDock();

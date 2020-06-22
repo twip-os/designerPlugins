@@ -32,6 +32,7 @@
 #include "dataObjItem.h"
 
 #include "itomQwtPlot.h"
+#include "itom2dqwtplot.h"
 #include "userInteractionPlotPicker.h"
 #include "drawItem.h"
 #include "itomPlotPicker.h"
@@ -51,11 +52,10 @@
 #include <qwt_plot_curve.h>
 #include <qwt_plot_marker.h>
 #include <qwt_plot_shapeitem.h>
+#include <qwt_plot_grid.h>
 #include <qcolor.h>
 
-class Itom2dQwtPlot; //forward declaration
 class ValuePicker2D;
-struct InternalData;
 class DataObjRasterData;
 class QWidgetAction;
 class QMenu;
@@ -73,8 +73,9 @@ class PlotCanvas : public ItomQwtPlot
             changeAppearance = 1,
             changeData = 2
         };
-
-        PlotCanvas(InternalData *m_pData, ItomQwtDObjFigure * parent = NULL);
+        //moved forward declaration here. Can be accessed using class' namespace
+        struct InternalData;
+        PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * parent = NULL);
         ~PlotCanvas();
 
         ito::RetVal init(bool overwriteDesignableProperties);
@@ -94,6 +95,9 @@ class PlotCanvas : public ItomQwtPlot
 
         bool showCenterMarker() const { return m_showCenterMarker; }
         void setShowCenterMarker(bool show);
+
+        Itom2dQwtPlot::GridStyle gridStyle() const { return m_gridStyle; }
+        void setGridStyle(Itom2dQwtPlot::GridStyle gridStyle);
 
         ito::AutoInterval getOverlayInterval(Qt::Axis axis) const;
         void setOverlayInterval(Qt::Axis axis, const ito::AutoInterval &interval);
@@ -174,6 +178,7 @@ class PlotCanvas : public ItomQwtPlot
         ItomPlotPicker *m_pStackPicker;
         QwtPlotMarker *m_pStackCutMarker;
         QwtPlotMarker *m_pCenterMarker;
+        QwtPlotGrid *m_pPlotGrid;
 
         QString m_colorContourMapName;
         QString m_colorOverlayMapName;
@@ -203,6 +208,8 @@ class PlotCanvas : public ItomQwtPlot
         const ito::DataObject *m_dObjPtr; //pointer to the current source (original) data object
         ito::DataObject m_dObjVolumeCut; //data object holding the object used for volume cut
 
+        Itom2dQwtPlot::GridStyle m_gridStyle;
+
         int m_currentDataType;
 
         Qt::KeyboardModifiers m_activeModifiers;
@@ -225,11 +232,15 @@ class PlotCanvas : public ItomQwtPlot
         QWidgetAction *m_pActCoordinates; //
         QAction *m_pActCmplxSwitch; //
         QMenu *m_pMnuCmplxSwitch; //
+        QAction *m_pActGrid;
+        QMenu *m_pMnuGrid;
         QAction *m_pActDataChannel;
         QMenu *m_pMnuDataChannel;
         QAction* m_pActCntrMarker; //
         QSlider* m_pOverlaySlider;
         QWidgetAction *m_pActOverlaySlider;
+
+
 
     signals:
         void spawnNewChild(QVector<QPointF>);
@@ -257,10 +268,12 @@ class PlotCanvas : public ItomQwtPlot
         void mnuPlaneSelector(int plane);
         void mnuOverlaySliderChanged(int value);
         void mnuCenterMarker(bool checked);
+        void mnuSetGrid(QAction *action);
 
 };
 
-struct InternalData
+
+struct PlotCanvas::InternalData
 {
     InternalData() :
         m_dataType(ito::tFloat64),
@@ -297,9 +310,8 @@ struct InternalData
         m_overlayMax(0)
     {
     }
-    ~InternalData()
-    {
-    }
+    ~InternalData(){}
+
 
     ito::tDataType m_dataType;
 
@@ -345,6 +357,5 @@ struct InternalData
 
     QHash<QString, ito::Param*> m_selectedOutputParameters;
 };
-
 
 #endif

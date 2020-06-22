@@ -51,7 +51,6 @@
 class Itom1DQwtPlot;
 class ItomQwtDObjFigure;
 class QwtLegend;
-struct InternalData;
 class QwtPlotCurveProperty;
 
 
@@ -59,15 +58,16 @@ class Plot1DWidget : public ItomQwtPlot
 {
     Q_OBJECT
     public:
-
-        Plot1DWidget(InternalData *data, ItomQwtDObjFigure *parent = 0);
+        //moved forward declaration here. Can be accessed using class' namespace
+        struct InternalData;
+        Plot1DWidget(Plot1DWidget::InternalData *data, ItomQwtDObjFigure *parent = 0);
         ~Plot1DWidget();
 
         ito::RetVal init(bool overwriteDesignableProperties);
 
         void refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> bounds = QVector<QPointF>(), const ito::DataObject* xVec = NULL);
 
-        ito::RetVal updateInterval(const Qt::Axis axis, const InternalData &data);
+        ito::RetVal updateInterval(const Qt::Axis axis, const Plot1DWidget::InternalData &data);
 
         void setZoomerEnable(const bool checked);
         void setPickerEnable(const bool checked);
@@ -173,6 +173,7 @@ class Plot1DWidget : public ItomQwtPlot
 
         QString distanceWithUnit(qreal d, const QString &unit, bool isIntegerType) const;
 
+        void setPickerToMinMax(bool global); //! global = True: min / max in entire dataObject, False: only in visible ROI
 
         QList<QwtPlotCurve*> m_plotCurveItems;
         QList<QwtPlotCurveProperty*> m_plotCurvePropertyItems; //sychrone with m_plotCurveItems. Every item is derived from QObject and therefore propagate a Q_PROPERTY based set of properties for each curve!
@@ -182,7 +183,7 @@ class Plot1DWidget : public ItomQwtPlot
         QByteArray m_hash; //hash of recently loaded dataObject
         QByteArray m_hashX; //hash of recently loaded axisObject
 
-        InternalData *m_pData;
+        Plot1DWidget::InternalData *m_pData;
 
         bool m_xDirect;
         bool m_yDirect;
@@ -229,24 +230,27 @@ class Plot1DWidget : public ItomQwtPlot
 
         QAction* m_pActScaleSettings;
         QAction* m_pRescaleParent;
-        QAction  *m_pActPicker;
-        QMenu    *m_pMnuSetPicker;
-        QAction  *m_pActSetPicker;
-        QAction *m_pActForward;
-        QAction *m_pActBack;
-        QAction *m_pActCmplxSwitch;
-        QMenu *m_pMnuCmplxSwitch;
-        QAction *m_pActRGBSwitch;
-        QMenu *m_pMnuRGBSwitch;
-        QLabel *m_pLblMarkerOffsets;
-        QLabel *m_pLblMarkerCoords;
-        QAction *m_pActGrid;
-		QMenu *m_pMnuGrid;
-        QAction *m_pActGridSettings;
-        QAction *m_pActMultiRowSwitch;
-        QMenu *m_pMnuMultiRowSwitch;
-        QAction *m_pActLegendSwitch;
-        QMenu *m_pMnuLegendSwitch;
+        QAction* m_pActPicker;
+        QMenu* m_pMnuSetPicker;
+        QAction* m_pActSetPickerMinMaxGlobal;
+        QAction* m_pActSetPickerMinMaxLocal;
+        QAction* m_pActSetPicker;
+        QAction* m_pActDeletePickers;
+        QAction* m_pActForward;
+        QAction* m_pActBack;
+        QAction* m_pActCmplxSwitch;
+        QMenu* m_pMnuCmplxSwitch;
+        QAction* m_pActRGBSwitch;
+        QMenu* m_pMnuRGBSwitch;
+        QLabel* m_pLblMarkerOffsets;
+        QLabel* m_pLblMarkerCoords;
+        QAction* m_pActGrid;
+		QMenu* m_pMnuGrid;
+        QAction* m_pActGridSettings;
+        QAction* m_pActMultiRowSwitch;
+        QMenu* m_pMnuMultiRowSwitch;
+        QAction* m_pActLegendSwitch;
+        QMenu* m_pMnuLegendSwitch;
 
         QAction* m_pActXVAuto;
         QAction* m_pActXVFR;
@@ -283,17 +287,19 @@ class Plot1DWidget : public ItomQwtPlot
         void mnuLegendSwitch(QAction*);
         void mnuMultiRowSwitch(QAction*);
         void mnuRGBSwitch(QAction*);
-        void mnuSetPicker(QAction *action);
         void mnuParentScaleSetting();
         void mnuGridEnabled(bool checked);
 		void mnuSetGrid(QAction *action);
         void mnuScaleSettings();
         void mnuPickerClick(bool checked);
+        void mnuDeletePicker();
+        void mnuSetPickerGlobalMinMax();
+        void mnuSetPickerRoiMinMax();
         
 
 };
 
-struct InternalData
+struct Plot1DWidget::InternalData
 {
     InternalData() :
         m_title(""),
