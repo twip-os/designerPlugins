@@ -243,6 +243,7 @@ PlotCanvas::PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * pa
     mainTb->addAction(m_pActPrint);
     mainTb->addSeparator();
     mainTb->addAction(m_pActProperties);
+    mainTb->addAction(m_pActCamParameters);
     mainTb->addAction(m_pActHome);
     mainTb->addAction(m_pActPan);
     mainTb->addAction(m_pActZoom);
@@ -291,6 +292,7 @@ PlotCanvas::PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * pa
     menuView->addAction(m_pActGrid);
     menuView->addSeparator();
     menuView->addAction(m_pActProperties);
+    menuView->addAction(m_pActCamParameters);
     m_menus.append(menuView);
 
     QMenu *menuTools = new QMenu(tr("Tools"), guiParent);
@@ -414,9 +416,9 @@ void PlotCanvas::refreshStyles(bool overwriteDesignableProperties)
     QPen zStackMarkerPen = QPen(QBrush(inverseColor1()), 3);
     QSize zStackMarkerSize = QSize(7, 7);
 
-    QFont titleFont = QFont("Helvetica", 12);
-    QFont labelFont = QFont("Helvetica", 12);
-    QFont axisFont = QFont("Helvetica", 10);
+    QFont titleFont = QFont("Verdana", 12);
+    QFont labelFont = QFont("Verdana", 10);
+    QFont axisFont = QFont("Verdana", 10);
 
     QSize centerMarkerSize = QSize(25, 25);
     QPen centerMarkerPen = QPen(QBrush(Qt::red), 1);

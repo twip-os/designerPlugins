@@ -188,6 +188,7 @@ Plot1DWidget::Plot1DWidget(InternalData *data, ItomQwtDObjFigure *parent) :
     mainTb->addAction(m_pActPrint);
     mainTb->addSeparator();
     mainTb->addAction(m_pActProperties);
+    mainTb->addAction(m_pActCamParameters);
     mainTb->addAction(m_pActHome);
     mainTb->addAction(m_pActScaleSettings);
     mainTb->addAction(m_pRescaleParent);
@@ -240,6 +241,7 @@ Plot1DWidget::Plot1DWidget(InternalData *data, ItomQwtDObjFigure *parent) :
     menuView->addAction(m_pActProperties);
     QAction *actCurveProperties = ((Itom1DQwtPlot*)(this->parent()))->getCurvePropertiesToggleViewAction();
 	menuView->addAction(actCurveProperties);
+    menuView->addAction(m_pActCamParameters);
 	m_menus.append(menuView);
 
     QMenu *menuTools = new QMenu(tr("Tools"), guiParent);
@@ -267,6 +269,7 @@ Plot1DWidget::Plot1DWidget(InternalData *data, ItomQwtDObjFigure *parent) :
     m_pContextMenu->addSeparator();
     m_pContextMenu->addAction(m_pActProperties);
     m_pContextMenu->addAction(actCurveProperties);
+    m_pContextMenu->addAction(m_pActCamParameters);
     m_pContextMenu->addAction(mainTb->toggleViewAction());
 }
 
@@ -342,17 +345,17 @@ ito::RetVal Plot1DWidget::init(bool overwriteDesignableProperties)
     ito::RetVal retVal;
     ItomQwtPlot::loadStyles(overwriteDesignableProperties);
 
-    QPen trackerPen = QPen(QBrush(Qt::red),2);
-    QFont trackerFont = QFont("Verdana",10);
+    QPen trackerPen = QPen(QBrush(Qt::red), 2);
+    QFont trackerFont = QFont("Verdana", 10);
     QBrush trackerBg = QBrush(Qt::white, Qt::SolidPattern);
 
-    QFont titleFont = QFont("Helvetica",12); //designable
-    QFont labelFont =  QFont("Helvetica",12); //designable
-    QFont axisFont = QFont("Helvetica",10); //designable
+    QFont titleFont = QFont("Verdana", 12); //designable
+    QFont labelFont =  QFont("Verdana", 10); //designable
+    QFont axisFont = QFont("Verdana", 10); //designable
 
     if (overwriteDesignableProperties)
     {
-        m_legendFont  = QFont("Helvetica", 8); //designable
+        m_legendFont  = QFont("Verdana", 8); //designable
         setUnitLabelStyle(ito::AbstractFigure::UnitLabelSlash); //designable
     }
 
@@ -1034,11 +1037,7 @@ void Plot1DWidget::setLegendTitles(const QStringList &legends, const ito::DataOb
         {
             if (object)
             {
-#if QT_VERSION >= 0x050400
-                tag = object->getTag(QString("legendTitle%1").arg(index).toLatin1().toStdString(), valid);
-#else
-                tag = object->getTag(QString("legendTitle%1").arg(index).toStdString(), valid);
-#endif                
+                tag = object->getTag(QString("legendTitle%1").arg(index).toLatin1().toStdString(), valid);              
             }
 
             if (valid) // plots with legend, defined by tags: legendTitle0, legendTitle1, ...
@@ -1562,11 +1561,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
         {
             for (int i = 0; i < curveNames.size(); ++i)
             {
-#if QT_VERSION >= 0x050400
                 tag = dataObj->getTag(QString("legendTitle%1").arg(i + legendOffset).toLatin1().toStdString(), valid);
-#else
-                tag = dataObj->getTag(QString("legendTitle%1").arg(i + legendOffset).toStdString(), valid);
-#endif
 
                 if (valid) // plots with legend, defined by tags: legendTitle0, legendTitle1, ...
                 {
@@ -2305,6 +2300,11 @@ void Plot1DWidget::keyPressEvent (QKeyEvent * event)
             updatePickerPosition(false,false);
             replot();
         }
+    }
+
+    if (!event->isAccepted())
+    {
+        ItomQwtPlot::keyPressEvent(event);
     }
 }
 
@@ -3211,13 +3211,25 @@ void Plot1DWidget::updatePickerPosition(bool updatePositions, bool clear/* = fal
                 }
             }
 
+            auto floatformat = [](const qreal& value) 
+            { 
+                if (std::abs(value) < 100000)
+                {
+                    return QString::number(value, 'f', 3);
+                }
+                else
+                {
+                    return QString::number(value, 'g', 5);
+                }
+            };
+
             if (yIntegerType)
             {
                 yCoord = QString("%1").arg(points[i].ry(), 0, 'f', 0);
             }
             else
             {
-                yCoord = QString("%1").arg(points[i].ry(), 0, 'g', 3);
+                yCoord = floatformat(points[i].y());
             }
 
             if (xIntegerType)
@@ -3226,7 +3238,7 @@ void Plot1DWidget::updatePickerPosition(bool updatePositions, bool clear/* = fal
             }
             else
             {
-                xCoord = QString("%1").arg(points[i].rx(), 0, 'g', 3);
+                xCoord = floatformat(points[i].x());
             }
 
             coordTexts << QString("[%1; %2]").arg(xCoord, yCoord);
