@@ -31,13 +31,13 @@
 #include "itom_sdk.h"
 
 #define PLUGIN_VERSION_MAJOR 3
-#define PLUGIN_VERSION_MINOR 8
-#define PLUGIN_VERSION_PATCH 0
+#define PLUGIN_VERSION_MINOR 9
+#define PLUGIN_VERSION_PATCH 4
 #define PLUGIN_VERSION_REVISION 0
 #define PLUGIN_VERSION        CREATE_VERSION(PLUGIN_VERSION_MAJOR,PLUGIN_VERSION_MINOR,PLUGIN_VERSION_PATCH)
 #define PLUGIN_VERSION_STRING CREATE_VERSION_STRING(PLUGIN_VERSION_MAJOR,PLUGIN_VERSION_MINOR,PLUGIN_VERSION_PATCH)
 #define PLUGIN_COMPANY        "Institut fuer Technische Optik, University Stuttgart"
-#define PLUGIN_COPYRIGHT      "(C) 2020, ITO, University Stuttgart"
+#define PLUGIN_COPYRIGHT      "(C) 2021, ITO, University Stuttgart"
 #define PLUGIN_NAME           "itom1DQwtPlot"
 
 //----------------------------------------------------------------------------------------------------------------------------------
