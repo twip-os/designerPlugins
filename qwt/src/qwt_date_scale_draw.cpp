@@ -276,7 +276,6 @@ QDateTime QwtDateScaleDraw::toDateTime( double value ) const
 #else
         dt.setUtcOffset(d_data->utcOffset);
 #endif
-
     }
 
     return dt;

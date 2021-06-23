@@ -834,7 +834,7 @@ QwtDate::Week0Type QwtDateScaleEngine::week0Type() const
 
   \param weeks Upper limit for the number of weeks
 
-  \note In business charts a year is often devided
+  \note In business charts a year is often divided
         into weeks [1-52]
   \sa maxWeeks(), setWeek0Type()
  */
@@ -1118,9 +1118,8 @@ QDateTime QwtDateScaleEngine::alignDate(
 #if QT_VERSION >= 0x050200
         dt.setOffsetFromUtc(0);
 #else
-        dt.setUtcOffset(0);
+        dt.setUtcOffset( 0 );
 #endif
-
     }
 
     switch( intervalType )
@@ -1281,9 +1280,8 @@ QDateTime QwtDateScaleEngine::alignDate(
 #if QT_VERSION >= 0x050200
         dt.setOffsetFromUtc(dateTime.offsetFromUtc());
 #else
-        dt.setUtcOffset(dateTime.utcOffset());
+        dt.setUtcOffset( dateTime.utcOffset() );
 #endif
-
     }
 
     return dt;
@@ -1314,9 +1312,8 @@ QDateTime QwtDateScaleEngine::toDateTime( double value ) const
 #if QT_VERSION >= 0x050200
         dt.setOffsetFromUtc(d_data->utcOffset);
 #else
-        dt.setUtcOffset(d_data->utcOffset);
+        dt.setUtcOffset( d_data->utcOffset );
 #endif
-
     }
 
     return dt;
