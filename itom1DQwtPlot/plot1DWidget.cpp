@@ -187,9 +187,9 @@ Plot1DWidget::Plot1DWidget(InternalData *data, ItomQwtDObjFigure *parent) :
     mainTb->addAction(m_pActSave);
     mainTb->addAction(m_pActPrint);
     mainTb->addSeparator();
+    mainTb->addAction(m_pActHome);
     mainTb->addAction(m_pActProperties);
     mainTb->addAction(m_pActCamParameters);
-    mainTb->addAction(m_pActHome);
     mainTb->addAction(m_pActScaleSettings);
     mainTb->addAction(m_pRescaleParent);
     mainTb->addAction(m_pActPan);
@@ -238,10 +238,12 @@ Plot1DWidget::Plot1DWidget(InternalData *data, ItomQwtDObjFigure *parent) :
     menuView->addSeparator();
     menuView->addMenu(m_pMnuCmplxSwitch);
     menuView->addSeparator();
-    menuView->addAction(m_pActProperties);
+    menuView->addMenu(m_pMenuToolboxes);
+    menuView->addSeparator();
     QAction *actCurveProperties = ((Itom1DQwtPlot*)(this->parent()))->getCurvePropertiesToggleViewAction();
 	menuView->addAction(actCurveProperties);
     menuView->addAction(m_pActCamParameters);
+    menuView->addAction(m_pActProperties);
 	m_menus.append(menuView);
 
     QMenu *menuTools = new QMenu(tr("Tools"), guiParent);
@@ -971,7 +973,7 @@ void Plot1DWidget::setLegendFont(const QFont &font)
                     text = item->legendData()[i].title();
 					text.setFont(m_legendFont);
 					QVariant titleValue;
-					qVariantSetValue(titleValue, text);
+                    titleValue.setValue(text);
                     item->legendData()[i].setValue(QwtLegendData::TitleRole, titleValue);
 				}
 			}
@@ -1069,6 +1071,15 @@ void Plot1DWidget::setGridStyle(const Itom1DQwtPlot::GridStyle gridStyle)
     m_pPlotGrid->enableXMin(gridStyle == Itom1DQwtPlot::GridMinorX || gridStyle == Itom1DQwtPlot::GridMinorXY);
     m_pPlotGrid->enableYMin(gridStyle == Itom1DQwtPlot::GridMinorY || gridStyle == Itom1DQwtPlot::GridMinorXY);
     m_pActGrid->setChecked(gridStyle != Itom1DQwtPlot::GridNo);
+
+    foreach(QAction* a, m_pMnuGrid->actions())
+    {
+        if (a->data().toInt() == gridStyle)
+        {
+            m_pMnuGrid->setDefaultAction(a);
+        }
+    }
+
     replot();
 }
 
@@ -2537,14 +2548,14 @@ void Plot1DWidget::stickPickerToXPx(Picker* picker, double xScaleStart, int dir,
         return;
     }
 
-    DataObjectSeriesData *data = (DataObjectSeriesData*)(m_plotCurveItems[picker->curveIdx]->data());
+    const DataObjectSeriesData *data = (const DataObjectSeriesData*)(m_plotCurveItems[picker->curveIdx]->data());
 
     if (!qIsFinite(xScaleStart))
     {
         xScaleStart = picker->item->xValue();
     }
 
-    int thisIdx = data->getPosToPix(xScaleStart, yScaleStart); //yScaleStart is ignored in case of DataObjectSeriesData
+    int thisIdx = data->getPosToPix(xScaleStart, yScaleStart, picker->dObjDataIdx); //yScaleStart is ignored in case of DataObjectSeriesData
     int s = (int)data->size();
     QPointF p;
     bool found = false;
@@ -3507,9 +3518,9 @@ QVector<int> Plot1DWidget::getPickerPixel() const
         if ((m_pickers[idx]).curveIdx < 0 || (m_pickers[idx]).curveIdx > m_plotCurveItems.size() - 1)
             continue;
 
-        DataObjectSeriesData *data = (DataObjectSeriesData*)(m_plotCurveItems[(m_pickers[idx]).curveIdx]->data());
+        const DataObjectSeriesData *data = (const DataObjectSeriesData*)(m_plotCurveItems[(m_pickers[idx]).curveIdx]->data());
 
-        int thisIdx = data->getPosToPix((m_pickers[idx]).item->xValue());
+        int thisIdx = data->getPosToPix((m_pickers[idx]).item->xValue(), (m_pickers[idx]).item->yValue(), (m_pickers[idx]).dObjDataIdx);
         exportItem[idx] = thisIdx;
     }
 

@@ -24,6 +24,8 @@
 #define ITOM_IMPORT_PLOTAPI
 #include "itomQwtDObjFigure.h"
 
+#include "markerWidget.h"
+
 #include <qbrush.h>
 #include <qpalette.h>
 #include <qstatusbar.h>
@@ -33,6 +35,7 @@
 #include <qapplication.h>
 #include <qtoolbar.h>
 #include <qfileinfo.h>
+#include <qpainter.h>
 
 #include "DataObject/dataobj.h"
 #include "itomQwtPlot.h"
@@ -41,7 +44,6 @@
 #include <qwt_plot_renderer.h>
 
 #include "itomWidgets/plotInfoShapes.h"
-#include "itomWidgets/plotInfoMarker.h"
 #include "itomWidgets/plotInfoPicker.h"
 #include "itomWidgets/plotInfoDObject.h"
 #include "itomWidgets/paramEditorWidget.h"
@@ -57,7 +59,8 @@ public:
         m_pObjectInfoDock(NULL),
         m_pCameraParamEditorDock(NULL),
         m_pCameraParamEditorWidget(NULL),
-        m_allowCameraParamEditor(true)
+        m_allowCameraParamEditor(true),
+        m_pMarkerInfoWidget(nullptr)
     {}
     
     QDockWidget *m_pMarkerDock;
@@ -66,6 +69,7 @@ public:
 	QDockWidget *m_pObjectInfoDock;
     QDockWidget *m_pCameraParamEditorDock;
     ParamEditorWidget *m_pCameraParamEditorWidget;
+    MarkerWidget *m_pMarkerInfoWidget;
     bool m_allowCameraParamEditor;
 };
 
@@ -102,8 +106,9 @@ void ItomQwtDObjFigure::construct()
 	d->m_pMarkerDock = new QDockWidget(tr("Marker Info"), this);
 	d->m_pMarkerDock->setVisible(false);
 	d->m_pMarkerDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetMovable);
-	m_pMarkerInfo = new PlotInfoMarker(d->m_pMarkerDock);
-	d->m_pMarkerDock->setWidget(m_pMarkerInfo);
+
+    d->m_pMarkerInfoWidget = new MarkerWidget(this);
+    d->m_pMarkerDock->setWidget(d->m_pMarkerInfoWidget);
 
 	d->m_pPickerDock = new QDockWidget(tr("Picker Info"), this);
 	d->m_pPickerDock->setVisible(false);
@@ -224,6 +229,12 @@ QDockWidget* ItomQwtDObjFigure::shapesDockWidget() const
 QDockWidget* ItomQwtDObjFigure::dObjectDockWidget() const
 {
     return d->m_pObjectInfoDock;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+MarkerWidget* ItomQwtDObjFigure::markerInfoWidget() const
+{
+    return d->m_pMarkerInfoWidget;
 }
 
 
@@ -654,6 +665,26 @@ ito::RetVal ItomQwtDObjFigure::deleteMarkers(QString id /*= ""*/)
     if (m_pBaseContent)
     {
         return m_pBaseContent->deleteMarkers(id);
+    }
+    return ito::RetVal(ito::retError, 0, tr("content not available").toLatin1().data());
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+ito::RetVal ItomQwtDObjFigure::showMarkers(QString id)
+{
+    if (m_pBaseContent)
+    {
+        return m_pBaseContent->showHideMarkers(id, true);
+    }
+    return ito::RetVal(ito::retError, 0, tr("content not available").toLatin1().data());
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+ito::RetVal ItomQwtDObjFigure::hideMarkers(QString id)
+{
+    if (m_pBaseContent)
+    {
+        return m_pBaseContent->showHideMarkers(id, false);
     }
     return ito::RetVal(ito::retError, 0, tr("content not available").toLatin1().data());
 }

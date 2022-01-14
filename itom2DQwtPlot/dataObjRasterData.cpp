@@ -65,6 +65,24 @@ DataObjRasterData::~DataObjRasterData()
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
+void DataObjRasterData::setInterval(Qt::Axis axis, const QwtInterval& interval)
+{
+    if (axis >= 0 && axis <= 2)
+    {
+        m_intervals[axis] = interval;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+QwtInterval DataObjRasterData::interval(Qt::Axis axis) const
+{
+    if (axis >= 0 && axis <= 2)
+        return m_intervals[axis];
+
+    return QwtInterval();
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
 /*
 dataHash only concerns fundamental items like the the number of dimensions or the pointer address to the real data
 apearanceHash contains things that might require a redraw of the data (however the current zoom... can be unchanged)
@@ -1143,14 +1161,14 @@ QSharedPointer<ito::DataObject> DataObjRasterData::rasterToObject(const QwtInter
 
     if (!validX0 && !validX1)
     {
-        if (!xInterval.contains(m_dataObjPlane->getPixToPhys(dims - 1, 0)))
+        if (!xInterval.normalized().contains(m_dataObjPlane->getPixToPhys(dims - 1, 0)))
         {
             return QSharedPointer<ito::DataObject>(new ito::DataObject());
         }
     }
     else if (!validY0 && !validY1)
     {
-        if (!yInterval.contains(m_dataObjPlane->getPixToPhys(dims - 2, 0)))
+        if (!yInterval.normalized().contains(m_dataObjPlane->getPixToPhys(dims - 2, 0)))
         {
             return QSharedPointer<ito::DataObject>(new ito::DataObject());
         }

@@ -26,6 +26,7 @@
 #include <qwt_plot.h>
 #include <qwt_scale_div.h>
 #include <qwt_scale_engine.h>
+#include <qwt_transform.h>
 #include <QtCore/qmath.h>
 #include "itomPlotZoomer.h"
 
@@ -427,11 +428,25 @@ void ItomPlotMagnifier::widgetWheelEvent( QWheelEvent *wheelEvent )
             in which case the delta value is a multiple
             of 120 (== 15 * 8).
          */
-        double f = qPow( wheelFactor(), 
-            qAbs( wheelEvent->delta() / 120.0 ) );
+        QPoint angleDeltaPt = wheelEvent->angleDelta();
+        double angleDelta;
 
-        if ( wheelEvent->delta() > 0 )
+        if (std::abs(angleDeltaPt.x()) > std::abs(angleDeltaPt.y()))
+        {
+            angleDelta = angleDeltaPt.x();
+        }
+        else
+        {
+            angleDelta = angleDeltaPt.y();
+        }
+
+        double f = qPow(wheelFactor(),
+            qAbs(angleDelta / 120.0 ) );
+
+        if (angleDelta > 0)
+        {
             f = 1 / f;
+        }
 
         if (m_mousePos.isNull())
         {
