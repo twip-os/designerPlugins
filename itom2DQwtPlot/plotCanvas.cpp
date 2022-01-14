@@ -242,9 +242,9 @@ PlotCanvas::PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * pa
     mainTb->addAction(m_pActSave);
     mainTb->addAction(m_pActPrint);
     mainTb->addSeparator();
+    mainTb->addAction(m_pActHome);
     mainTb->addAction(m_pActProperties);
     mainTb->addAction(m_pActCamParameters);
-    mainTb->addAction(m_pActHome);
     mainTb->addAction(m_pActPan);
     mainTb->addAction(m_pActZoom);
     mainTb->addAction(m_pActAspectRatio);
@@ -291,8 +291,10 @@ PlotCanvas::PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * pa
     menuView->addAction(m_pActCmplxSwitch);
     menuView->addAction(m_pActGrid);
     menuView->addSeparator();
-    menuView->addAction(m_pActProperties);
+    menuView->addMenu(m_pMenuToolboxes);
+    menuView->addSeparator();
     menuView->addAction(m_pActCamParameters);
+    menuView->addAction(m_pActProperties);
     m_menus.append(menuView);
 
     QMenu *menuTools = new QMenu(tr("Tools"), guiParent);
@@ -787,6 +789,8 @@ void PlotCanvas::setButtonStyle(int style)
         {
             m_pActCmplxSwitch->setIcon(QIcon(":/itomDesignerPlugins/complex/icons/ImReAbs.png"));
         }
+
+        m_pActGrid->setIcon(QIcon(":/itomDesignerPlugins/plot/icons/grid.png"));
     }
     else
     {
@@ -827,6 +831,8 @@ void PlotCanvas::setButtonStyle(int style)
         {
             m_pActCmplxSwitch->setIcon(QIcon(":/itomDesignerPlugins/complex_lt/icons/ImReAbs_lt.png"));
         }
+
+        m_pActGrid->setIcon(QIcon(":/itomDesignerPlugins/plot_lt/icons/grid_lt.png"));
     }
 }
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -1790,7 +1796,7 @@ void PlotCanvas::setValueAxisScaleEngine(const ItomQwtPlotEnums::ScaleEngine &sc
 		{
 			setAxisScaleEngine(QwtPlot::yRight, new QwtLinearScaleEngine());
 		}
-		else if ((int)scaleEngine < 1000)
+		else if ((int)scaleEngine < (int)ItomQwtPlotEnums::LogLog2)
 		{
 			setAxisScaleEngine(QwtPlot::yRight, new QwtLogScaleEngine((int)scaleEngine));
 		}
@@ -1824,6 +1830,15 @@ void PlotCanvas::setGridStyle(Itom2dQwtPlot::GridStyle gridStyle)
     m_pPlotGrid->enableXMin(gridStyle == Itom2dQwtPlot::GridMinorX || gridStyle == Itom2dQwtPlot::GridMinorXY);
     m_pPlotGrid->enableYMin(gridStyle == Itom2dQwtPlot::GridMinorY || gridStyle == Itom2dQwtPlot::GridMinorXY);
     m_pActGrid->setChecked(gridStyle != Itom2dQwtPlot::GridNo);
+
+    foreach(QAction* a, m_pMnuGrid->actions())
+    {
+        if (a->data().toInt() == gridStyle)
+        {
+            m_pMnuGrid->setDefaultAction(a);
+        }
+    }
+
     replot();
 }
 
@@ -2811,7 +2826,7 @@ void PlotCanvas::lineCutAppendedPx(const QPoint &pt)
 //----------------------------------------------------------------------------------------------------------------------------------
 void PlotCanvas::lineCutAppendedPhys(const QPointF &pt)
 {
-    if (state() == stateLineCut && m_dObjPtr)
+    if (state() == stateLineCut)
     {
         QVector<QPointF> pts;
         pts.resize(2);
@@ -3053,7 +3068,7 @@ void PlotCanvas::volumeCutMovedPhys(const QPointF &pt)
 //----------------------------------------------------------------------------------------------------------------------------------
 void PlotCanvas::volumeCutAppendedPhys(const QPointF &pt)
 {
-    if (state() == stateVolumeCut && m_dObjPtr)
+    if (state() == stateVolumeCut)
     {
         QVector<QPointF> pts;
         pts.resize(2);
