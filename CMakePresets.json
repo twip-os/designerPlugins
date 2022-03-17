@@ -1,0 +1,29 @@
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "Transporto",
+            "displayName": "Transporto",
+            "description": "Sets Ninja generator and disables debug postfix.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../../build/designerplugins",
+            "cacheVariables": {
+                "CMAKE_DEBUG_POSTFIX": {
+                    "type": "STRING",
+                    "value": ""
+                },
+                "BUILD_TARGET64": "OFF",
+                "PLUGIN_evaluateGeometrics": "OFF",
+                "PLUGIN_itom1DQwtPlot": "ON",
+                "PLUGIN_itom2DQwtPlot": "ON",
+                "PLUGIN_itomIsoGLFigurePlugin": "OFF",
+                "PLUGIN_matplotlibPlot": "OFF",
+                "PLUGIN_motorController": "OFF",
+                "PLUGIN_plotlyPlot": "OFF",
+                "PLUGIN_slider2D": "OFF",
+                "PLUGIN_vtk3dVisualizer": "OFF",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+            }
+        }
+    ]
+}
