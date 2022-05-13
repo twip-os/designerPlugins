@@ -65,6 +65,7 @@
 #include <qwt_symbol.h>
 #include <qwt_plot_layout.h>
 #include <qwt_plot_canvas.h>
+#include <qwt_date_scale_draw.h>
 
 //---------------------------------------------------------------------------
 ItomQwtPlot::ItomQwtPlot(ItomQwtDObjFigure * parent /*= NULL*/) :
@@ -185,29 +186,7 @@ ItomQwtPlot::ItomQwtPlot(ItomQwtDObjFigure * parent /*= NULL*/) :
     //plotLayout()->setAlignCanvasToScales(true); //directly connects the bottom-left-corners of the y-left and x-bottom axis.
     plotLayout()->setCanvasMargin(2,-1);
 
-    //left axis
-    QwtScaleWidget *leftAxis = axisWidget(QwtPlot::yLeft);
-    leftAxis->setMargin(0);                 //distance backbone <-> canvas
-    leftAxis->setSpacing(6);                //distance tick labels <-> axis label
-    leftAxis->scaleDraw()->setSpacing(4);   //distance tick labels <-> ticks
-    leftAxis->setContentsMargins(0, 0, 0, 0);  //left axis starts and ends at same level than canvas
-    axisScaleDraw(QwtPlot::yLeft)->enableComponent(QwtScaleDraw::Backbone, !m_boxFrame);
-
-    //bottom axis
-    QwtScaleWidget *bottomAxis = axisWidget(QwtPlot::xBottom);
-    bottomAxis->setMargin(0);                 //distance backbone <-> canvas
-    bottomAxis->setSpacing(6);                //distance tick labels <-> axis label
-    bottomAxis->scaleDraw()->setSpacing(4);   //distance tick labels <-> ticks
-    bottomAxis->setContentsMargins(0, 0, 0, 0);  //left axis starts and ends at same level than canvas
-    axisScaleDraw(QwtPlot::xBottom)->enableComponent(QwtScaleDraw::Backbone, !m_boxFrame);
-
-    ////top axis
-    //QwtScaleWidget *topAxis = axisWidget(QwtPlot::xTop);
-    //enableAxis(QwtPlot::xTop, true);
-    //topAxis->setMargin(0);                 //distance backbone <-> canvas
-    //topAxis->setSpacing(6);                //distance tick labels <-> axis label
-    //topAxis->scaleDraw()->setSpacing(4);   //distance tick labels <-> ticks
-    //topAxis->setContentsMargins(0, 0, 0, 0);  //left axis starts and ends at same level than canvas
+    styleXYScaleWidgets();
 
     setState(stateIdle);
 
@@ -430,6 +409,26 @@ void ItomQwtPlot::loadStyles(bool overwriteDesignableProperties)
             item->setColor(m_inverseColor0, m_inverseColor1, m_inverseColor1);
         //}
     }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+void ItomQwtPlot::styleXYScaleWidgets()
+{
+    //left axis
+    QwtScaleWidget *leftAxis = axisWidget(QwtPlot::yLeft);
+    leftAxis->setMargin(0);                 //distance backbone <-> canvas
+    leftAxis->setSpacing(6);                //distance tick labels <-> axis label
+    leftAxis->scaleDraw()->setSpacing(4);   //distance tick labels <-> ticks
+    leftAxis->setContentsMargins(0, 0, 0, 0);  //left axis starts and ends at same level than canvas
+    axisScaleDraw(QwtPlot::yLeft)->enableComponent(QwtScaleDraw::Backbone, !m_boxFrame);
+
+    //bottom axis
+    QwtScaleWidget *bottomAxis = axisWidget(QwtPlot::xBottom);
+    bottomAxis->setMargin(0);                 //distance backbone <-> canvas
+    bottomAxis->setSpacing(6);                //distance tick labels <-> axis label
+    bottomAxis->scaleDraw()->setSpacing(4);   //distance tick labels <-> ticks
+    bottomAxis->setContentsMargins(0, 0, 0, 0);  //left axis starts and ends at same level than canvas
+    axisScaleDraw(QwtPlot::xBottom)->enableComponent(QwtScaleDraw::Backbone, !m_boxFrame);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -3392,7 +3391,13 @@ void ItomQwtPlot::mnuSendCurrentToWorkspace()
     }
     else
     {
-        varname = QInputDialog::getText(p, tr(dialogTitle.toLatin1().data()), tr(userText.toLatin1().data()), QLineEdit::Normal, "zoom_object", &ok);
+        varname = QInputDialog::getText(
+            p,
+            tr(dialogTitle.toLatin1().data()),
+            tr(userText.toLatin1().data()),
+            QLineEdit::Normal,
+            varname,
+            &ok);
     }    
     
     if (ok && varname != "")

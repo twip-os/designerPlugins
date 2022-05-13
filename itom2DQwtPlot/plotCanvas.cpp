@@ -1264,13 +1264,25 @@ ito::RetVal PlotCanvas::cutVolume(const ito::DataObject* dataObj, const QVector<
     return retval;
 }
 //---------------------------------------------------------------------------------------------------------------------------------
-
 void PlotCanvas::refreshPlot(const ito::DataObject *dObj,int plane /*= -1*/, const QVector<QPointF> bounds /*=QVector<QPointF>()*/ )
 {
     ito::RetVal retval;
     if (m_isRefreshingPlot || !m_pData)
     {
         return;
+    }
+
+    // the 2d plot does not accept a datetime or timedelta object
+    if (dObj)
+    {
+        switch (dObj->getType())
+        {
+        case ito::tDateTime:
+        case ito::tTimeDelta:
+            dObj = nullptr;
+            emit statusBarMessage(QObject::tr("Objects of type dateTime or timeDelta not supported by this plot."), 10000);
+            break;
+        }
     }
 
     m_isRefreshingPlot = true;
@@ -1295,6 +1307,7 @@ void PlotCanvas::refreshPlot(const ito::DataObject *dObj,int plane /*= -1*/, con
         {
             emit statusBarMessage(QObject::tr(retval.errorMessage()).toLatin1().data(), 10000);
         }
+
         int dims = dObj->getDims();
         int width = dims > 0 ? dObj->getSize(dims - 1) : 0;
         int height = dims > 1 ? dObj->getSize(dims - 2) : 1;
@@ -2187,6 +2200,18 @@ void PlotCanvas::synchronizeScaleValues()
     m_pData->m_yaxisMax = std::max(ival.minValue(), ival.maxValue());
 }
 
+//---------------------------------------------------------------------------------
+//!< if an interval has size of 0, the automatically determined scale will have strange values.
+void fixZeroInterval(QwtInterval &interval)
+{
+    auto dist = qAbs(interval.maxValue() - interval.minValue());
+
+    if (dist < std::numeric_limits<double>::epsilon())
+    {
+        interval = QwtInterval(interval.minValue() - 0.5, interval.maxValue() + 0.5);
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------------------
 /*
 @param doReplot forces a replot of the content
@@ -2215,6 +2240,7 @@ void PlotCanvas::updateScaleValues(bool doReplot /*= true*/, bool doZoomBase /*=
     if (m_pData->m_xaxisScaleAuto)
     {
         ival = m_rasterData->interval(Qt::XAxis);
+        fixZeroInterval(ival);
         m_pData->m_xaxisMin = ival.minValue();
         m_pData->m_xaxisMax = ival.maxValue();
     }
@@ -2222,6 +2248,7 @@ void PlotCanvas::updateScaleValues(bool doReplot /*= true*/, bool doZoomBase /*=
     if (m_pData->m_yaxisScaleAuto)
     {
         ival = m_rasterData->interval(Qt::YAxis);
+        fixZeroInterval(ival);
         m_pData->m_yaxisMin = ival.minValue();
         m_pData->m_yaxisMax = ival.maxValue();
     }

@@ -49,6 +49,8 @@
 #include <qwt_scale_widget.h>
 #include <qwt_scale_engine.h>
 #include <qwt_text_label.h>
+#include <qwt_date_scale_draw.h>
+#include <qwt_date_scale_engine.h>
 
 #include <qimage.h>
 #include <qpixmap.h>
@@ -67,18 +69,12 @@
 Plot1DWidget::Plot1DWidget(InternalData *data, ItomQwtDObjFigure *parent) :
     ItomQwtPlot(parent),
     m_pPlotGrid(NULL),
-    //        m_startScaledX(false),
-    //        m_startScaledY(false),
     m_xDirect(false),
     m_yDirect(false),
-    //m_autoLineColIndex(0),
     m_lineCol(0),
     m_lineWidth(1.0),
     m_lineStyle(Qt::SolidLine),
     m_hasParentForRescale(false),
-    //        m_actPickerIdx(-1),
-    m_cmplxState(false),
-    m_colorState(false),
     m_layerState(false),
     m_pData(data),
     m_gridStyle(Itom1DQwtPlot::GridNo),
@@ -738,7 +734,7 @@ void Plot1DWidget::setDefaultValueScaleEngine(const ItomQwtPlotEnums::ScaleEngin
     {
         if (scaleEngine == ItomQwtPlotEnums::Linear)
         {
-        setAxisScaleEngine(QwtPlot::yLeft, new QwtLinearScaleEngine());
+            setAxisScaleEngine(QwtPlot::yLeft, new QwtLinearScaleEngine());
         }
         else if ((int)scaleEngine < 1000)
         {
@@ -770,13 +766,20 @@ void Plot1DWidget::setDefaultValueScaleEngine(const ItomQwtPlotEnums::ScaleEngin
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-void Plot1DWidget::setDefaultAxisScaleEngine(const ItomQwtPlotEnums::ScaleEngine &scaleEngine)
+void Plot1DWidget::setDefaultAxisScaleEngine(const ItomQwtPlotEnums::ScaleEngine &scaleEngine, bool forceUpdate /*= false*/)
 {
-    if (scaleEngine != m_axisScale)
+    if (scaleEngine != m_axisScale || forceUpdate)
     {
         if (scaleEngine == ItomQwtPlotEnums::Linear)
         {
-        setAxisScaleEngine(QwtPlot::xBottom, new QwtLinearScaleEngine());
+            if (m_pData && m_pData->m_hasDateTimeXAxis)
+            {
+                setAxisScaleEngine(QwtPlot::xBottom, new QwtDateScaleEngine(Qt::UTC));
+            }
+            else
+            {
+                setAxisScaleEngine(QwtPlot::xBottom, new QwtLinearScaleEngine());
+            }
         }
         else if ((int)scaleEngine < 1000)
         {
@@ -1230,16 +1233,31 @@ void Plot1DWidget::updateLabels()
 void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> bounds, const ito::DataObject* xVec /*=NULL*/)
 {
     ito::RetVal retval(ito::retOk);
-    DataObjectSeriesData* seriesData = NULL;
+    DataObjectSeriesData* seriesData = nullptr;
     int colorIndex;
     int numCurves = 1;
-    QwtPlotCurve *curve = NULL;
-    QwtPlotCurveDataObject *dObjCurve = NULL;
+    QwtPlotCurve *curve = nullptr;
+    QwtPlotCurveDataObject *dObjCurve = nullptr;
     bool boundsChanged = false;
     bool _unused;
-
-    QwtLegendLabel *legendLabel = NULL;
+    QwtLegendLabel *legendLabel = nullptr;
     int index;
+
+    // currently this feature is not implemented for an x-over-y plot.
+    m_pActSetPickerMinMaxLocal->setEnabled(xVec == nullptr);
+
+    // check for valid data types
+    if (dataObj && (dataObj->getType() == ito::tDateTime || dataObj->getType() == ito::tTimeDelta))
+    {
+        emit statusBarMessage(tr("A dateTime or timeDelta dataObject is not supported by this plot."), 10000);
+        dataObj = nullptr;
+    }
+    else if (xVec && xVec->getType() == ito::tTimeDelta)
+    {
+        emit statusBarMessage(tr("A timeDelta x-axis dataObject is not supported by this plot."), 10000);
+        dataObj = nullptr;
+    }
+
     if (dataObj)
     {
         int dims = dataObj->getDims();
@@ -1252,27 +1270,22 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
         int width = dims > 0 ? dataObj->getSize(dims - 1) : 0;
         int height = dims > 1 ? dataObj->getSize(dims - 2) : (width == 0) ? 0 : 1;
 		m_pData->m_dataType = (ito::tDataType)dataObj->getType();
+        m_pData->m_hasDateTimeXAxis = false;
 
         if (m_pData->m_dataType == ito::tComplex128 || 
             m_pData->m_dataType == ito::tComplex64)
         {
             enableObjectGUIElements(2 /*complex*/ | (dims > 1 ? 0x10 : 0x00) /*multi-layer: yes : no*/);
-            m_cmplxState = true;
-            m_colorState = false;
             m_pRescaleParent->setVisible(bounds.size() > 1 && m_hasParentForRescale); //a z-stack 1d plot should not be able to rescale its parent (therefore the bounds.size() check, 1: z-stack, 2: line-cut 2D object, 3: line-cut 3D object (first bounds is the plane)).
         }
         else if (m_pData->m_dataType == ito::tRGBA32)
         {
             enableObjectGUIElements(1 /*rgba, no multi-layer*/);
-            m_colorState = true;
-            m_cmplxState = false;
             m_pRescaleParent->setVisible(false); //a coloured data object has no color map and can therefore not be cropped.
         }
         else
         {
             enableObjectGUIElements(0 /*gray*/ | (dims > 1 ? 0x10 : 0x00) /*multi-layer: yes : no*/);
-            m_cmplxState = false;  
-            m_colorState = false;
             m_pRescaleParent->setVisible(bounds.size() > 1 && m_hasParentForRescale); //a z-stack 1d plot should not be able to rescale its parent (therefore the bounds.size() check, 1: z-stack, 2: line-cut 2D object, 3: line-cut 3D object (first bounds is the plane)).
         }
 
@@ -1415,77 +1428,24 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
         }
 
         //check if current number of curves does not correspond to height. If so, adjust the number of curves to the required number
-		bool refreshWidgetCurveProperties = 0;
-        QwtPlotCurveProperty *curveProp = NULL;
-
         //remove and delete all 'old' curves, whose index is bigger than 'numCurves'
-        while (m_plotCurveItems.size() > numCurves)
-        {
-            curve = m_plotCurveItems.takeLast();
-            curveProp = m_plotCurvePropertyItems.takeLast();
-            DELETE_AND_SET_NULL(curveProp);
-
-            curve->detach();
-            DELETE_AND_SET_NULL(curve);
-
-			refreshWidgetCurveProperties = 1;
-        }
+		bool refreshWidgetCurveProperties = removeAllCurvesBesideTheNFirst(numCurves);
 
         //add new curves to the canvas until a number of 'numCurves' exists.
         bool valid;
         ito::DataObjectTagType tag;
-        int *roiLims = new int[2 * dataObj->getDims()];
-        dataObj->locateROI(roiLims);
+        
         QList<QString> curveNames = m_legendTitles.mid(0, m_plotCurveItems.size());
-        int legendOffset = 0;
-
-        {
-            int legendOffsetRoiIdx = -1;
-
-            switch (m_pData->m_multiLine)
-            {
-            case ItomQwtPlotEnums::AutoRowCol:
-                if (multiLineMode == ItomQwtPlotEnums::MultiCols)
-                {
-                    legendOffsetRoiIdx = 2 * dataObj->getDims() - 4;
-                    break;
-                }
-                else
-                {
-                    legendOffsetRoiIdx = 2 * dataObj->getDims() - 2;
-                    break;
-                }
-            case ItomQwtPlotEnums::MultiLayerAuto:
-            case ItomQwtPlotEnums::MultiLayerRows:
-            case ItomQwtPlotEnums::FirstRow:
-            case ItomQwtPlotEnums::MultiRows:
-                legendOffsetRoiIdx = 2 * dataObj->getDims() - 4;
-                break;
-            case ItomQwtPlotEnums::MultiLayerCols:
-            case ItomQwtPlotEnums::FirstCol:
-            case ItomQwtPlotEnums::MultiCols:
-                legendOffsetRoiIdx = 2 * dataObj->getDims() - 2;
-                break;
-            default:
-                legendOffset = 0;
-            }
-
-            if (legendOffsetRoiIdx >= 0)
-            {
-                legendOffset = roiLims[legendOffsetRoiIdx];
-            }
-        }
+        int legendOffset = getLegendOffset(dataObj, multiLineMode);
+        WidgetCurveProperties* widgetCurveProperties = (WidgetCurveProperties*)((Itom1DQwtPlot*)(this->parent()))->getWidgetCurveProperties();
 
         while (m_plotCurveItems.size() < numCurves) // do until all curves are present
         {
             index = m_plotCurveItems.size();
+
             if (m_legendTitles.size() <= index) //true if there are fewer or equal legend entries such as curves
             {
-#if QT_VERSION >= 0x050400
                 tag = dataObj->getTag(QString("legendTitle%1").arg(index + legendOffset).toLatin1().toStdString(), valid);
-#else
-                tag = dataObj->getTag(QString("legendTitle%1").arg(index+legendOffset).toStdString(), valid);
-#endif
                 
 				if(valid) // plots with legend, defined by tags: legendTitle0, legendTitle1, ...
 				{
@@ -1504,7 +1464,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                 curveNames.append(m_legendTitles[index]);
             }           
 
-            dObjCurve->setData(NULL);
+            dObjCurve->setData(nullptr);
             dObjCurve->setRenderHint(QwtPlotItem::RenderAntialiased, m_antiAliased);
             dObjCurve->attach(this);
 
@@ -1531,7 +1491,14 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
             // Add Symbol here
             if (m_pData->m_lineSymbole != QwtSymbol::NoSymbol)
             {
-                dObjCurve->setSymbol(new QwtSymbol(m_pData->m_lineSymbole, QBrush(Qt::white), QPen(m_colorList[colorIndex]),  QSize(m_pData->m_lineSymboleSize,m_pData->m_lineSymboleSize)));
+                dObjCurve->setSymbol(
+                    new QwtSymbol(
+                        m_pData->m_lineSymbole, 
+                        QBrush(Qt::white), 
+                        QPen(m_colorList[colorIndex]), 
+                        QSize(m_pData->m_lineSymboleSize, m_pData->m_lineSymboleSize)
+                    )
+                );
             }
 
             setQwtLineStyle(dObjCurve, m_qwtCurveStyle);
@@ -1557,16 +1524,24 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
             }
             m_plotCurveItems.append(dObjCurve);
             m_plotCurvePropertyItems.append(new QwtPlotCurveProperty(dObjCurve));
-			connect(m_plotCurvePropertyItems.last(), SIGNAL(curveChanged()), ((WidgetCurveProperties*)((Itom1DQwtPlot*)(this->parent()))->getWidgetCurveProperties()), SLOT(on_listWidget_itemSelectionChanged()));
-			refreshWidgetCurveProperties = 1;
+
+            connect(
+                m_plotCurvePropertyItems.last(),
+                &QwtPlotCurveProperty::curveChanged,
+                widgetCurveProperties,
+                &WidgetCurveProperties::on_listWidget_itemSelectionChanged);
+
+			refreshWidgetCurveProperties = true;
         }
  
 
-		//re-use old legend titles entries, if no new curves have been appended (e.g. important if 'the' same shape of object is only updated via resetting its source property
+		// re-use old legend titles entries, if no new curves have been appended 
+        // (e.g. important if 'the' same shape of object is only updated via resetting its source property
 		for (int i = curveNames.size(); i < std::min(numCurves, m_legendTitles.size()); ++i)
 		{
 			curveNames.append(m_legendTitles[i]);
 		}
+
         // update legend since offset has changed
         if (m_legendOffset != legendOffset) 
         {
@@ -1577,7 +1552,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                 if (valid) // plots with legend, defined by tags: legendTitle0, legendTitle1, ...
                 {
                     m_plotCurveItems[i]->setTitle(QString::fromLatin1(tag.getVal_ToString().data()));
-                    curveNames[i]=QString(tag.getVal_ToString().data());
+                    curveNames[i] = QString(tag.getVal_ToString().data());
                 }
                 else // plots with empty tags: curce 0, curve 1, ...
                 {
@@ -1585,26 +1560,24 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                     curveNames[i] = QString(tr("curve %1").arg(i + legendOffset));
                 }
             }
-
         }
 
         m_legendTitles = curveNames;
         m_legendOffset = legendOffset;
-        delete[] roiLims;
-        roiLims = NULL;
 
-
-		if (refreshWidgetCurveProperties == 1) // if true a curve was added or deleted and the widget has to be updated
+		if (refreshWidgetCurveProperties) 
 		{	
-			((WidgetCurveProperties*)((Itom1DQwtPlot*)(this->parent()))->getWidgetCurveProperties())->updateProperties();
+            // if true a curve was added or deleted and the widget has to be updated
+			widgetCurveProperties->updateProperties();
             updateLegendItems();
-
 		}
+
         if (bounds.size() == 0) //default plot
         {
             QVector<QPointF> pts(2);
             QVector<QPointF> ptsX(2);
             int previousAxisState;
+
             switch(multiLineMode)
             {
             case ItomQwtPlotEnums::MultiLayerCols:
@@ -1621,20 +1594,22 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                     pts[0].setY(dataObj->getPixToPhys(dims-2, 0, _unused));
                     pts[1].setY(dataObj->getPixToPhys(dims-2, height-1, _unused)); 
                 }
+
                 previousAxisState = m_pData->m_axisState;
+
                 if (xVec) //we need to check if the dataObject is valid
                 {
-
                         m_pData->m_axisState = ItomQwtPlotEnums::xAxisObject | ItomQwtPlotEnums::colState;
                         retval += validateXData(dataObj, xVec, pts);
+
                         if ((m_pData->m_axisState & ItomQwtPlotEnums::mismatch) || (m_pData->m_axisState & ItomQwtPlotEnums::noPerfectFit))
                         {
-                            emit statusBarMessage(QObject::tr(retval.errorMessage()).toLatin1().data(), 10000);
+                            emit statusBarMessage(QLatin1String(retval.errorMessage()), 10000);
                         }
                         if (m_pData->m_axisState & ItomQwtPlotEnums::mismatch)
                         {
-                            //xVec = NULL;
-                            m_pData->m_axisState = ItomQwtPlotEnums::evenlySpaced; //since the xVec does not fit we go back to evenlyspaced plot
+                            // since the xVec does not fit we go back to evenlyspaced plot
+                            m_pData->m_axisState = ItomQwtPlotEnums::evenlySpaced; 
                         }
                         else
                         {
@@ -1650,6 +1625,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                 for (int n = 0; n < numCurves; n++)
                 {
                     seriesData = static_cast<DataObjectSeriesData*>(m_plotCurveItems[n]->data());
+
                     if (m_layerState)
                     {
                         pts[0].setX(n);
@@ -1659,15 +1635,18 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                     }
                     else
                     {
-                        pts[0].setX(dataObj->getPixToPhys(dims-1, m_colorState ? 0 : n, _unused));
-                        pts[1].setX(dataObj->getPixToPhys(dims-1, m_colorState ? 0 : n, _unused));                    
+                        pts[0].setX(dataObj->getPixToPhys(dims-1, m_pData->m_dataType == ito::tRGBA32 ? 0 : n, _unused));
+                        pts[1].setX(dataObj->getPixToPhys(dims-1, m_pData->m_dataType == ito::tRGBA32 ? 0 : n, _unused));
                     }
+
                     if (m_pData->m_axisState & ItomQwtPlotEnums::xAxisObject)
                     {
                         ptsX[0].setX(xVec->getPixToPhys(xVec->getDims() - 1, n, _unused));
                         ptsX[1].setX(ptsX[0].x());
                     }
+
                     m_pData->m_axisState & ItomQwtPlotEnums::xAxisObject ? setSendCurrentViewState(false) : setSendCurrentViewState(true);
+
                     if (seriesData && seriesData->isDobjInit())
                     {
                         if (m_pData->m_axisState & ItomQwtPlotEnums::evenlySpaced)
@@ -1683,7 +1662,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                                 m_plotCurveItems[n]->setData(seriesData);
                             }
                         }
-                        else if(m_pData->m_axisState & ItomQwtPlotEnums::xAxisObject)
+                        else if (m_pData->m_axisState & ItomQwtPlotEnums::xAxisObject)
                         {
                             if (previousAxisState & ItomQwtPlotEnums::xAxisObject)
                             {
@@ -1712,7 +1691,8 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                         }
                         m_plotCurveItems[n]->setData(seriesData);
                     }
-                    if (m_colorState)
+
+                    if (m_pData->m_dataType == ito::tRGBA32)
                     {
                         if (m_pData->m_colorLine == ItomQwtPlotEnums::Gray) seriesData->setColorState(DataObjectSeriesData::grayColor);
                         else if (m_pData->m_colorLine == ItomQwtPlotEnums::RGB || m_pData->m_colorLine == ItomQwtPlotEnums::RGBA) seriesData->setColorState(n);
@@ -1746,6 +1726,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                     pts[1].setX(dataObj->getPixToPhys(dims - 1, width - 1, _unused));            
                 }
                 previousAxisState = m_pData->m_axisState;
+
                 if (xVec) //we need to check if the dataObject is valid
                 {
 
@@ -1770,6 +1751,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                 {
                     m_pData->m_axisState = ItomQwtPlotEnums::evenlySpaced;
                 }
+
                 for (int n = 0; n < numCurves; n++)
                 {
                     seriesData = static_cast<DataObjectSeriesData*>(m_plotCurveItems[n]->data());
@@ -1783,15 +1765,18 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                     }
                     else
                     {
-                        pts[0].setY(dataObj->getPixToPhys(dims-2, m_colorState ? 0 : n, _unused));
-                        pts[1].setY(dataObj->getPixToPhys(dims-2, m_colorState ? 0 : n, _unused));               
+                        pts[0].setY(dataObj->getPixToPhys(dims-2, m_pData->m_dataType == ito::tRGBA32 ? 0 : n, _unused));
+                        pts[1].setY(dataObj->getPixToPhys(dims-2, m_pData->m_dataType == ito::tRGBA32 ? 0 : n, _unused));
                     }
+
                     if (m_pData->m_axisState & ItomQwtPlotEnums::xAxisObject)
                     {
                         ptsX[0].setY(xVec->getPixToPhys(xVec->getDims() - 2, n, _unused));
                         ptsX[1].setY(ptsX[0].y());
                     }
+
                     m_pData->m_axisState & ItomQwtPlotEnums::xAxisObject ? setSendCurrentViewState(false) : setSendCurrentViewState(true);
+
                     if (seriesData && seriesData->isDobjInit())
                     {
                         if (m_pData->m_axisState & ItomQwtPlotEnums::evenlySpaced)
@@ -1837,7 +1822,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                         m_plotCurveItems[n]->setData(seriesData);
                     }
 
-                    if (m_colorState)
+                    if (m_pData->m_dataType == ito::tRGBA32)
                     {
                         if (m_pData->m_colorLine == ItomQwtPlotEnums::Gray) seriesData->setColorState(DataObjectSeriesData::grayColor);
                         else if (m_pData->m_colorLine == ItomQwtPlotEnums::RGB || m_pData->m_colorLine == ItomQwtPlotEnums::RGBA) seriesData->setColorState(n);
@@ -1876,7 +1861,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                     seriesData->setCmplxState(m_pComplexStyle);
                     m_plotCurveItems[n]->setData(seriesData);
                 }
-                if (m_colorState)
+                if (m_pData->m_dataType == ito::tRGBA32)
                 {
                     if (m_pData->m_colorLine == ItomQwtPlotEnums::Gray)
                     {
@@ -1917,7 +1902,7 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
                     m_plotCurveItems[n]->setData(seriesData);
                 }
 
-                if (m_colorState)
+                if (m_pData->m_dataType == ito::tRGBA32)
                 {
                     if (m_pData->m_colorLine == ItomQwtPlotEnums::Gray) seriesData->setColorState(DataObjectSeriesData::grayColor);
                     else if (m_pData->m_colorLine == ItomQwtPlotEnums::RGB || m_pData->m_colorLine == ItomQwtPlotEnums::RGBA) seriesData->setColorState(n);
@@ -1934,7 +1919,49 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
 
         tag = dataObj->getTag("title", valid);
         m_pData->m_titleDObj = valid? QString::fromLatin1(tag.getVal_ToString().data()) : "";
+
+        if (xVec && (xVec->getType() == ito::tDateTime))
+        {
+            m_pData->m_hasDateTimeXAxis = true;
+            m_pValuePicker->setXAxisIsDateTime(true);
+
+            if (dynamic_cast<QwtDateScaleDraw*>(axisScaleDraw(QwtAxis::XBottom)) == nullptr)
+            {
+                setDefaultAxisScaleEngine(m_axisScale, true);
+
+                auto bottomScaleDraw = new QwtDateScaleDraw(Qt::UTC);
+
+                // ISO 8601 (en)
+                bottomScaleDraw->setDateFormat(QwtDate::Millisecond, "yyyy-MM-dd\nhh:mm:ss:zzz");
+                bottomScaleDraw->setDateFormat(QwtDate::Second, "yyyy-MM-dd\nhh:mm:ss");
+                bottomScaleDraw->setDateFormat(QwtDate::Minute, "yyyy-MM-dd\nhh:mm");
+                bottomScaleDraw->setDateFormat(QwtDate::Hour, "yyyy-MM-dd\nhh:mm");
+                bottomScaleDraw->setDateFormat(QwtDate::Day, "yyyy-MM-dd");
+                bottomScaleDraw->setDateFormat(QwtDate::Week, "yyyy-Www");
+                bottomScaleDraw->setDateFormat(QwtDate::Month, "MMM yyyy");
+                bottomScaleDraw->setDateFormat(QwtDate::Year, "yyyy");
+
+                setAxisScaleDraw(QwtAxis::XBottom, bottomScaleDraw);
+                styleXYScaleWidgets();
+            }
+        }
+        else
+        {
+            m_pData->m_hasDateTimeXAxis = false;
+            m_pValuePicker->setXAxisIsDateTime(false);
+
+            if (dynamic_cast<QwtDateScaleDraw*>(axisScaleDraw(QwtAxis::XBottom)) != nullptr)
+            {
+                setDefaultAxisScaleEngine(m_axisScale, true);
+                setAxisScaleDraw(QwtAxis::XBottom, new QwtScaleDraw());
+                styleXYScaleWidgets();
+            }
+        }
     } 
+    else
+    {
+        removeAllCurvesBesideTheNFirst(0);
+    }
 
     updateLabels();
 
@@ -1942,12 +1969,14 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
     {
         QByteArray hash = seriesData->getHash();
         QByteArray hashX(m_pData->m_axisState & ItomQwtPlotEnums::xAxisObject ? seriesData->getHash() : "");
+
         if (hash != m_hash || hashX != m_hashX || m_pData->m_valueScaleAuto)
         {
             updatePickerPosition(true);
 
             //get the bounding rectangle of all bounding rectangles of all curves
             QRectF rect;
+
             foreach(QwtPlotCurve *curve, m_plotCurveItems)
             {
                 rect |= curve->boundingRect();
@@ -2058,13 +2087,75 @@ void Plot1DWidget::refreshPlot(const ito::DataObject* dataObj, QVector<QPointF> 
         replot();
     }
 }
+
+//------------------------------------------------------------------------------
+bool Plot1DWidget::removeAllCurvesBesideTheNFirst(int numCurvesToKeep)
+{
+    QwtPlotCurveProperty *curveProp = nullptr;
+    bool curvesDeleted = false;
+    QwtPlotCurve* curve = nullptr;
+
+    //remove and delete all 'old' curves, whose index is bigger than 'numCurves'
+    while (m_plotCurveItems.size() > numCurvesToKeep)
+    {
+        curve = m_plotCurveItems.takeLast();
+        curveProp = m_plotCurvePropertyItems.takeLast();
+        DELETE_AND_SET_NULL(curveProp);
+
+        curve->detach();
+        DELETE_AND_SET_NULL(curve);
+
+        curvesDeleted = true;
+    }
+
+    return curvesDeleted;
+}
+
+//------------------------------------------------------------------------------
+int Plot1DWidget::getLegendOffset(const ito::DataObject *dataObj, ItomQwtPlotEnums::MultiLineMode multiLineMode) const
+{
+    int legendOffsetRoiIdx = -1;
+    int legendOffset = 0;
+
+    switch (multiLineMode)
+    {
+    case ItomQwtPlotEnums::MultiLayerAuto:
+    case ItomQwtPlotEnums::MultiLayerRows:
+    case ItomQwtPlotEnums::FirstRow:
+    case ItomQwtPlotEnums::MultiRows:
+    case ItomQwtPlotEnums::AutoRowCol:
+        legendOffsetRoiIdx = 2 * dataObj->getDims() - 4;
+        break;
+    case ItomQwtPlotEnums::MultiLayerCols:
+    case ItomQwtPlotEnums::FirstCol:
+    case ItomQwtPlotEnums::MultiCols:
+        legendOffsetRoiIdx = 2 * dataObj->getDims() - 2;
+        break;
+    default:
+        legendOffset = 0;
+    }
+
+    if (legendOffsetRoiIdx >= 0)
+    {
+        int *roiLims = new int[2 * dataObj->getDims()];
+        dataObj->locateROI(roiLims);
+        legendOffset = roiLims[legendOffsetRoiIdx];
+        delete[] roiLims;
+        roiLims = nullptr;
+    }
+
+    return legendOffset;
+}
+
 //----------------------------------------------------------------------------------------------------------------------------------
 ito::RetVal Plot1DWidget::validateXData(const ito::DataObject* dataObj, const ito::DataObject* xVec, const QVector<QPointF> &bounds)
 {
     ito::RetVal retval;
-    if (dataObj != NULL && xVec != NULL)
+
+    if (dataObj != nullptr && xVec != nullptr)
     {
         int curveAxisShapeX, dataAxisShapeX, dataAxisShapeDObj ,curveAxisShapeDObj;
+
         if (bounds.size() == 2)
         {
             if(m_pData->m_axisState & ItomQwtPlotEnums::rowState)
@@ -2106,11 +2197,12 @@ ito::RetVal Plot1DWidget::validateXData(const ito::DataObject* dataObj, const it
             else if (dataAxisShapeDObj > dataAxisShapeX)
             {
                 m_pData->m_axisState = m_pData->m_axisState | ItomQwtPlotEnums::mismatch;
-                if(m_pData->m_axisState & ItomQwtPlotEnums::rowState)
+
+                if (m_pData->m_axisState & ItomQwtPlotEnums::rowState)
                 {
                     retval += RetVal(retError, 0, tr("wrong xData shape. Expect a shape of (1 x %2) or (%1 x %2)").arg(curveAxisShapeDObj).arg(dataAxisShapeDObj).toLatin1().data());
                 }
-                else if(m_pData->m_axisState & ItomQwtPlotEnums::colState)
+                else if (m_pData->m_axisState & ItomQwtPlotEnums::colState)
                 {
                     retval += RetVal(retError, 0, tr("wrong xData shape. Expect a shape of (%1 x 1) or (%1 x %2)").arg(dataAxisShapeDObj).arg(curveAxisShapeDObj).toLatin1().data());
                 }
@@ -2122,11 +2214,12 @@ ito::RetVal Plot1DWidget::validateXData(const ito::DataObject* dataObj, const it
             else if (curveAxisShapeDObj > curveAxisShapeX && curveAxisShapeX != 1) //todo for other dimension and check if correct
             {
                 m_pData->m_axisState = m_pData->m_axisState | ItomQwtPlotEnums::mismatch;
-                if(m_pData->m_axisState & ItomQwtPlotEnums::rowState)
+
+                if (m_pData->m_axisState & ItomQwtPlotEnums::rowState)
                 {
                     retval += RetVal(retError, 0, tr("wrong xData shape. Expect a shape of (1 x %2) or (%1 x %2)").arg(curveAxisShapeDObj).arg(dataAxisShapeDObj).toLatin1().data());
                 }
-                else if(m_pData->m_axisState & ItomQwtPlotEnums::colState)
+                else if (m_pData->m_axisState & ItomQwtPlotEnums::colState)
                 {
                     retval += RetVal(retError, 0, tr("wrong xData shape. Expect a shape of (%1 x 1) or (%1 x %2)").arg(dataAxisShapeDObj).arg(curveAxisShapeDObj).toLatin1().data());
                 }
@@ -2136,11 +2229,15 @@ ito::RetVal Plot1DWidget::validateXData(const ito::DataObject* dataObj, const it
                 }
 
             }
-            else if (xVec->getType() == ito::tComplex128 || xVec->getType() == ito::tComplex64 || xVec->getType() == ito::tRGBA32)
+            else if (xVec->getType() == ito::tComplex128 || 
+                xVec->getType() == ito::tComplex64 || 
+                xVec->getType() == ito::tRGBA32 || 
+                xVec->getType() == ito::tTimeDelta)
             {
-                retval += ito::RetVal(ito::retError, 0, QObject::tr("wrong xData data type. Complex64 and Rgba32 are not supported.").toLatin1().data());
+                retval += ito::RetVal(ito::retError, 0, QObject::tr("wrong xData data type. Complex64, complex128, rgba32 and timeDelta are not supported.").toLatin1().data());
                 m_pData->m_axisState = m_pData->m_axisState | ItomQwtPlotEnums::mismatch;
             }
+
             if (curveAxisShapeDObj < curveAxisShapeX || dataAxisShapeDObj < dataAxisShapeX)
             {
                 retval += RetVal(retWarning, 0, tr("xData contains more values than the source dataObject. Unused values will be ignored.").toLatin1().data());
@@ -2150,9 +2247,10 @@ ito::RetVal Plot1DWidget::validateXData(const ito::DataObject* dataObj, const it
     }
     else
     {
-        retval += ito::RetVal(ito::retError, 0, QObject::tr("recieved a NULL pointer").toLatin1().data());
+        retval += ito::RetVal(ito::retError, 0, QObject::tr("received a NULL pointer").toLatin1().data());
         m_pData->m_axisState = m_pData->m_axisState | ItomQwtPlotEnums::mismatch;
     }
+
     return retval;
 }
 
@@ -2911,13 +3009,19 @@ void Plot1DWidget::updateScaleValues(bool doReplot /*= true*/, bool doZoomBase /
         (m_pData->m_axisScaleAuto && qIsNaN(m_pData->m_axisMin)))
     {
         QRectF rect;
+        DataObjectSeriesData *curveData = nullptr;
         
         foreach(QwtPlotCurve *curve, m_plotCurveItems)
         {
-            QRectF tmpRect = ((DataObjectSeriesData *)curve->data())->boundingRect();
-            if (qIsFinite(tmpRect.height()))
+            curveData = (DataObjectSeriesData *)curve->data();
+
+            if (curveData)
             {
-                rect = rect.united(tmpRect);
+                QRectF tmpRect = curveData->boundingRect();
+                if (qIsFinite(tmpRect.height()))
+                {
+                    rect = rect.united(tmpRect);
+                }
             }
         }
 
@@ -3137,12 +3241,13 @@ void Plot1DWidget::updatePickerPosition(bool updatePositions, bool clear/* = fal
     QVector<QPointF> points;
     QVector<const DataObjectSeriesData*> seriesData;
 
-	QVector< int > idcs;
+	QVector< int > indices;
     int actIdx = -1;
 
     for (int i = 0 ; i < m_pickers.size() ; i++)
     {
         m = &(m_pickers[i]);
+
         if (updatePositions)
         {
             stickPickerToXPx(m, std::numeric_limits<double>::quiet_NaN(), 0);
@@ -3160,9 +3265,13 @@ void Plot1DWidget::updatePickerPosition(bool updatePositions, bool clear/* = fal
             m_pickers[i].item->setSymbol(new QwtSymbol(QwtSymbol::Diamond, colors[cur], QPen(colors[cur],2), QSize(6,6)));
         }
 
-        if (cur < 2) cur++;
+        if (cur < 2) 
+        { 
+            cur++; 
+        }
+
         points << QPointF(m->item->xValue(), m->item->yValue());   
-		idcs << i;
+		indices << i;
     }
 
     Itom1DQwtPlot *plot1d = (Itom1DQwtPlot*)(this->parent());
@@ -3173,18 +3282,38 @@ void Plot1DWidget::updatePickerPosition(bool updatePositions, bool clear/* = fal
 
         if (plot1d->pickerWidget())
         {
-            (plot1d->pickerWidget())->updatePickers(idcs, points);
+            if (m_pData->m_hasDateTimeXAxis)
+            {
+                QVector<QDateTime> xpositions;
+                QVector<qreal> ypositions;
+
+                foreach(const auto &pt, points)
+                {
+                    xpositions << QwtDate::toDateTime(pt.x());
+                    ypositions << pt.y();
+                }
+
+                (plot1d->pickerWidget())->updatePickers(indices, xpositions, ypositions);
+            }
+            else
+            {
+                (plot1d->pickerWidget())->updatePickers(indices, points);
+            }
         }
 
         QStringList coordTexts;
         bool yIntegerType, xIntegerType;
+        bool xDateTimeType;
         QString yCoord, xCoord;
         QString yUnit, xUnit;
 
         for (int i = 0; i < std::min(points.size(), 2); ++i) 
         {
             const DataObjectSeriesData* d = seriesData[i];
+            const DataObjectSeriesDataXY* dxy = dynamic_cast<const DataObjectSeriesDataXY*>(d);
+
             yIntegerType = false;
+            xDateTimeType = dxy && dxy->getXDataObject() && dxy->getXDataObject()->getType() == ito::tDateTime;
             xIntegerType = d->getXCoordsWholeNumber();
             const ito::DataObject *yObj = d->getDataObject();
 
@@ -3243,7 +3372,21 @@ void Plot1DWidget::updatePickerPosition(bool updatePositions, bool clear/* = fal
                 yCoord = floatformat(points[i].y());
             }
 
-            if (xIntegerType)
+            if (xDateTimeType)
+            {
+                auto dateTime = QwtDate::toDateTime(points[i].rx());
+
+                if (dateTime.time().msec() != 0)
+                {
+                    xCoord = dateTime.toString(Qt::ISODateWithMs);
+                }
+                else
+                {
+                    xCoord = dateTime.toString(Qt::ISODate);
+                }
+                
+            }
+            else if (xIntegerType)
             {
                 xCoord = QString("%1").arg(points[i].rx(), 0, 'f', 0);
             }
@@ -4235,6 +4378,7 @@ void Plot1DWidget::mnuSetPickerGlobalMinMax()
 //----------------------------------------------------------------------------------------------------------------------------------
 void Plot1DWidget::mnuSetPickerRoiMinMax()
 {
+    // this is currently not implemented for x over y plots.
     setPickerToMinMax(false);
 }
 
