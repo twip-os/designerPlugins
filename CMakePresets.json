@@ -2,8 +2,8 @@
     "version": 2,
     "configurePresets": [
         {
-            "name": "Transporto",
-            "displayName": "Transporto",
+            "name": "transporto_release",
+            "displayName": "Transporto Release",
             "description": "Sets Ninja generator and disables debug postfix.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/../../build/designerplugins",
@@ -22,8 +22,17 @@
                 "PLUGIN_plotlyPlot": "OFF",
                 "PLUGIN_slider2D": "OFF",
                 "PLUGIN_vtk3dVisualizer": "OFF",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+                "CMAKE_BUILD_TYPE": "Release"
             }
-        }
+        },
+        {
+            "name": "transporto_debug",
+            "displayName": "Transporto Debug",
+            "inherits": "transporto_release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
     ]
 }
