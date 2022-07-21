@@ -2,6 +2,21 @@
     "version": 2,
     "configurePresets": [
         {
+            "name": "develop_windows",
+            "displayName": "Develop Windows",
+            "description": "Sets Visual Studio generator.",
+            "generator": "Visual Studio 16 2019",
+            "binaryDir": "${sourceDir}/../../build/designerPlugins",
+            "cacheVariables": {
+                "BUILD_TARGET64": "ON",
+                "BUILD_WITH_PCL": "ON",
+                "ITOM_3RDPARTYFOLDER": "${sourceDir}/../../3rdParty",
+                "ITOM_3RDPARTYPCLFOLDER": "${sourceDir}/../../3rdPartyPCL",
+                "ITOM_APP_DIR": "${sourceDir}/../../build/itom",
+                "Boost_NO_WARN_NEW_VERSIONS": "ON"
+            }
+        },
+        {
             "name": "transporto_release",
             "displayName": "Transporto Release",
             "description": "Sets Ninja generator and disables debug postfix.",
@@ -12,7 +27,7 @@
                     "type": "STRING",
                     "value": ""
                 },
-                "BUILD_TARGET64": "OFF",
+                "BUILD_TARGET64": "ON",
                 "PLUGIN_evaluateGeometrics": "OFF",
                 "PLUGIN_itom1DQwtPlot": "ON",
                 "PLUGIN_itom2DQwtPlot": "ON",
@@ -33,6 +48,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
-        },
+        }
     ]
 }
