@@ -21,13 +21,14 @@
             "displayName": "Transporto Release",
             "description": "Sets Ninja generator and disables debug postfix.",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/../../build/designerplugins",
+            "binaryDir": "${sourceDir}/../../build/designerPlugins",
             "cacheVariables": {
                 "CMAKE_DEBUG_POSTFIX": {
                     "type": "STRING",
                     "value": ""
                 },
                 "BUILD_TARGET64": "ON",
+                "BUILD_WITH_PCL": "OFF",
                 "PLUGIN_evaluateGeometrics": "OFF",
                 "PLUGIN_itom1DQwtPlot": "ON",
                 "PLUGIN_itom2DQwtPlot": "ON",
@@ -36,6 +37,7 @@
                 "PLUGIN_motorController": "OFF",
                 "PLUGIN_plotlyPlot": "OFF",
                 "PLUGIN_slider2D": "OFF",
+                "PLUGIN_twipOGLPlugin": "OFF",
                 "PLUGIN_vtk3dVisualizer": "OFF",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "CMAKE_BUILD_TYPE": "Release"
