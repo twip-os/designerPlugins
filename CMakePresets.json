@@ -2,32 +2,39 @@
     "version": 2,
     "configurePresets": [
         {
-            "name": "develop_windows",
-            "displayName": "Develop Windows",
-            "description": "Sets Visual Studio generator.",
-            "generator": "Visual Studio 16 2019",
+            "name": "twip_common",
+            "hidden": true,
             "binaryDir": "${sourceDir}/../../build/designerPlugins",
             "cacheVariables": {
                 "BUILD_TARGET64": "ON",
-                "BUILD_WITH_PCL": "ON",
-                "ITOM_3RDPARTYFOLDER": "${sourceDir}/../../3rdParty",
-                "ITOM_3RDPARTYPCLFOLDER": "${sourceDir}/../../3rdPartyPCL",
                 "ITOM_APP_DIR": "${sourceDir}/../../build/itom",
                 "Boost_NO_WARN_NEW_VERSIONS": "ON"
             }
         },
         {
+            "name": "develop_windows",
+            "displayName": "Develop Windows",
+            "inherits": "twip_common",
+            "description": "Sets Visual Studio generator.",
+            "generator": "Visual Studio 16 2019",
+            "cacheVariables": {
+                "BUILD_WITH_PCL": "ON",
+                "ITOM_3RDPARTYFOLDER": "${sourceDir}/../../3rdParty",
+                "ITOM_3RDPARTYPCLFOLDER": "${sourceDir}/../../3rdPartyPCL",
+                "PLUGIN_vtk3dVisualizer": "OFF"
+            }
+        },
+        {
             "name": "transporto_release",
             "displayName": "Transporto Release",
+            "inherits": "twip_common",
             "description": "Sets Ninja generator and disables debug postfix.",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/../../build/designerPlugins",
             "cacheVariables": {
                 "CMAKE_DEBUG_POSTFIX": {
                     "type": "STRING",
                     "value": ""
                 },
-                "BUILD_TARGET64": "ON",
                 "BUILD_WITH_PCL": "OFF",
                 "PLUGIN_evaluateGeometrics": "OFF",
                 "PLUGIN_itom1DQwtPlot": "ON",
