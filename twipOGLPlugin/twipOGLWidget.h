@@ -53,6 +53,7 @@
 #include "DataObject/dataObjectFuncs.h"
 #include "framework.h"
 #include "common/interval.h"
+#include "common/numeric.h"
 #ifdef USEPCL
     #include "PointCloud/pclStructures.h"
     #include <pcl/common/common.h>

@@ -54,7 +54,7 @@ include(ItomBuildMacros)
 itom_init_cmake_policy(3.12)
 itom_init_designerplugin_library(${target_name})
 
-find_package(ITOM_SDK COMPONENTS dataobject itomCommonLib itomCommonQtLib pointCloud itomCommonPlotLib REQUIRED)
+find_package(ITOM_SDK COMPONENTS dataobject itomCommonLib itomCommonQtLib pointcloud itomCommonPlotLib REQUIRED)
 itom_find_package_qt(ON Core Widgets Xml Designer LinguistTools OpenGL OpenGLExtensions)
 find_package(OpenCV COMPONENTS core imgproc REQUIRED)
 find_package(OpenGL REQUIRED)

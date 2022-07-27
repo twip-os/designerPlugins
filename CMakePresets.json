@@ -35,7 +35,7 @@
                     "type": "STRING",
                     "value": ""
                 },
-                "BUILD_WITH_PCL": "OFF",
+                "BUILD_WITH_PCL": "IB",
                 "PLUGIN_evaluateGeometrics": "OFF",
                 "PLUGIN_itom1DQwtPlot": "ON",
                 "PLUGIN_itom2DQwtPlot": "ON",
@@ -44,7 +44,7 @@
                 "PLUGIN_motorController": "OFF",
                 "PLUGIN_plotlyPlot": "OFF",
                 "PLUGIN_slider2D": "OFF",
-                "PLUGIN_twipOGLPlugin": "OFF",
+                "PLUGIN_twipOGLPlugin": "ON",
                 "PLUGIN_vtk3dVisualizer": "OFF",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "CMAKE_BUILD_TYPE": "Release"
