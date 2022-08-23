@@ -6,9 +6,9 @@
             "hidden": true,
             "binaryDir": "${sourceDir}/../../build/designerPlugins",
             "cacheVariables": {
-                "BUILD_TARGET64": "ON",
+                "BUILD_TARGET64": true,
                 "ITOM_APP_DIR": "${sourceDir}/../../build/itom",
-                "Boost_NO_WARN_NEW_VERSIONS": "ON"
+                "Boost_NO_WARN_NEW_VERSIONS": true
             }
         },
         {
@@ -18,10 +18,10 @@
             "description": "Sets Visual Studio generator.",
             "generator": "Visual Studio 16 2019",
             "cacheVariables": {
-                "BUILD_WITH_PCL": "ON",
+                "BUILD_WITH_PCL": true,
                 "ITOM_3RDPARTYFOLDER": "${sourceDir}/../../3rdParty",
                 "ITOM_3RDPARTYPCLFOLDER": "${sourceDir}/../../3rdPartyPCL",
-                "PLUGIN_vtk3dVisualizer": "OFF"
+                "PLUGIN_vtk3dVisualizer": false
             }
         },
         {
@@ -35,17 +35,17 @@
                     "type": "STRING",
                     "value": ""
                 },
-                "BUILD_WITH_PCL": "IB",
-                "PLUGIN_evaluateGeometrics": "OFF",
-                "PLUGIN_itom1DQwtPlot": "ON",
-                "PLUGIN_itom2DQwtPlot": "ON",
-                "PLUGIN_itomIsoGLFigurePlugin": "OFF",
-                "PLUGIN_matplotlibPlot": "OFF",
-                "PLUGIN_motorController": "OFF",
-                "PLUGIN_plotlyPlot": "OFF",
-                "PLUGIN_slider2D": "OFF",
-                "PLUGIN_twipOGLPlugin": "ON",
-                "PLUGIN_vtk3dVisualizer": "OFF",
+                "BUILD_WITH_PCL": true,
+                "PLUGIN_evaluateGeometrics": false,
+                "PLUGIN_itom1DQwtPlot": true,
+                "PLUGIN_itom2DQwtPlot": true,
+                "PLUGIN_itomIsoGLFigurePlugin": false,
+                "PLUGIN_matplotlibPlot": false,
+                "PLUGIN_motorController": false,
+                "PLUGIN_plotlyPlot": false,
+                "PLUGIN_slider2D": false,
+                "PLUGIN_twipOGLPlugin": true,
+                "PLUGIN_vtk3dVisualizer": false,
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "CMAKE_BUILD_TYPE": "Release"
             }
