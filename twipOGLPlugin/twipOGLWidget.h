@@ -586,7 +586,9 @@ class TwipOGLWidget : public QGLWidget
         GLuint m_cBarTex;
 
         template<typename _Tp, typename _TpMat> ito::RetVal GLSetTriangles(const int id = 0, const bool isComplex = false);
+#ifdef USEPCL
         template<typename _Tp> ito::RetVal GLSetPointsPCL(pcl::PointCloud<_Tp> *pcl, const int id = 0);
+#endif
         template<typename _Tp> cv::Mat* newMatFromComplex(const cv::Mat* inData);
         void generateObjectInfoText(const int fromID = 0);
         void DrawObjectInfo(void);
@@ -600,93 +602,10 @@ class TwipOGLWidget : public QGLWidget
         int makeShaderProg(const QString &progStr, GLint &progName);
 
         template<typename _Tp> ito::RetVal updateOverlayImage(const int objectID);
-        template<typename _Tp> void pclFindMinMax(pcl::PointCloud<_Tp> *pcl, const int id)
-        {
-            _Tp pt;
 
-            ito::float64 xmin = std::numeric_limits<ito::float64>::max();
-            ito::float64 ymin = std::numeric_limits<ito::float64>::max();
-            ito::float64 zmin = std::numeric_limits<ito::float64>::max();
-            float devmin = std::numeric_limits<float>::max();
-
-#if linux
-            ito::float64 xmax = -std::numeric_limits<ito::float64>::max();
-            ito::float64 ymax = -std::numeric_limits<ito::float64>::max();
-            ito::float64 zmax = -std::numeric_limits<ito::float64>::max();
-            float devmax = -std::numeric_limits<float>::max();
-#else
-            ito::float64 xmax = std::numeric_limits<ito::float64>::lowest();
-            ito::float64 ymax = std::numeric_limits<ito::float64>::lowest();
-            ito::float64 zmax = std::numeric_limits<ito::float64>::lowest();
-            float devmax = std::numeric_limits<float>::lowest();
+#ifdef USEPCL
+        template<typename _Tp> void pclFindMinMax(pcl::PointCloud<_Tp> *pcl, const int id);
 #endif
-
-            int size = (int)pcl->points.size();
-            if(hasPointToCurvature<_Tp>())
-            {
-                float val;
-                for (int np = 0; np < size; np++)
-                {
-                    pt = pcl->at(np);
-                    if (ito::isFinite<float>(pt.z))
-                    {
-                        if (pt.x < xmin)
-                            xmin = pt.x;
-                        if (pt.x > xmax)
-                            xmax = pt.x;
-                        if (pt.y < ymin)
-                            ymin = pt.y;
-                        if (pt.y > ymax)
-                            ymax = pt.y;
-                        if (pt.z < zmin)
-                            zmin = pt.z;
-                        if (pt.z > zmax)
-                            zmax = pt.z;
-
-                        pointToCurvature<_Tp>(pt, val);
-                        if (ito::isFinite<float>(val))
-                        {
-                            if (val < devmin)
-                                devmin = val;
-                            if (val > devmax)
-                                devmax = val;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                for (int np = 0; np < size; np++)
-                {
-                    pt = pcl->at(np);
-                    if (ito::isFinite<float>(pt.z))
-                    {
-                        if (pt.x < xmin)
-                            xmin = pt.x;
-                        if (pt.x > xmax)
-                            xmax = pt.x;
-                        if (pt.y < ymin)
-                            ymin = pt.y;
-                        if (pt.y > ymax)
-                            ymax = pt.y;
-                        if (pt.z < zmin)
-                            zmin = pt.z;
-                        if (pt.z > zmax)
-                            zmax = pt.z;
-                    }
-                }
-                devmax = 0.0f;
-                devmin = 0.0f;
-            }
-            m_pclMinX[id] = xmin;
-            m_pclMinY[id] = ymin;
-            m_pclMinZ[id] = zmin;
-            m_pclMinDev[id] = cv::saturate_cast<ito::float64>(devmin);
-            m_pclMaxX[id] = xmax;
-            m_pclMaxY[id] = ymax;
-            m_pclMaxZ[id] = zmax;
-            m_pclMaxDev[id] = cv::saturate_cast<ito::float64>(devmax);
-        }
 
         inline uint32_t nearestPOT(const uint32_t num)
         {
@@ -705,7 +624,7 @@ class TwipOGLWidget : public QGLWidget
         inline cv::Mat makePerspective(const float field_of_view,
                 const float nearPt, const float farPt, const float aspect_ratio)
         {
-            float size = nearPt * tanf(field_of_view / 180.0 * M_PI / 2.0f);
+            float size = nearPt * tanf(field_of_view / 180.0 * CV_PI / 2.0f);
 
             return makeFrustum(-size, size, -size / aspect_ratio,
                      size / aspect_ratio, nearPt, farPt);
@@ -872,6 +791,8 @@ class TwipOGLWidget : public QGLWidget
         void oglAboutToDestroy();
 
 #if linux
+        void setColorMap(QString colormap = QString());
+#elif __APPLE__
         void setColorMap(QString colormap = QString());
 #else
         void setColorMap(QString colormap = QString::QString(""));
