@@ -1,9 +1,9 @@
 /* ********************************************************************
    itom measurement system
    URL: http://www.uni-stuttgart.de/ito
-   Copyright (C) 2018, Institut fuer Technische Optik (ITO), 
-   Universitaet Stuttgart, Germany 
- 
+   Copyright (C) 2018, Institut fuer Technische Optik (ITO),
+   Universitaet Stuttgart, Germany
+
    This file is part of itom.
 
    itom is free software: you can redistribute it and/or modify
@@ -48,7 +48,6 @@ public:
 
     virtual void rescale(bool resizeEvent);
 
-    void appendZoomStack(const QRectF &rect);
 
 public Q_SLOTS:
     void setEnabled(bool enabled);
@@ -59,7 +58,7 @@ protected:
     bool eventFilter( QObject *object, QEvent *event );
 
     virtual void rescale() { rescale(false); };
-    
+
     virtual bool accept( QPolygon & ) const;
 
 private:
@@ -67,6 +66,8 @@ private:
     bool m_aspectRatioChanged;
     int m_invertedAxes; //this member remembers the inversion of the xBottom and yLeft axis
     int m_nrOfRescaleCalls;
+signals:
+    void test();
 };
 
 #endif //ITOMPLOTZOOMER_H

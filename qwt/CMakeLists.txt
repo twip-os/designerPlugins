@@ -1,12 +1,23 @@
-set(target_name qwt)
- 
-cmake_minimum_required(VERSION 3.1...3.15)
+cmake_minimum_required(VERSION 3.12...3.24)
 
+set(target_name qwt)
 
 message(STATUS "\n<--- BASE LIBRARY ${target_name} --->")
 message(STATUS "-- Build directory: ${CMAKE_CURRENT_BINARY_DIR}")
 
-set(ITOM_SDK_DIR "" CACHE PATH "base path to itom_sdk")
+
+#this is to automatically detect the SDK subfolder of the itom build directory.
+if(NOT EXISTS ${ITOM_SDK_DIR})
+    find_path(ITOM_SDK_DIR "cmake/itom_sdk.cmake"
+    HINTS "$ENV{ITOM_SDK_ROOT}"
+          "${CMAKE_CURRENT_BINARY_DIR}/../itom/SDK"
+    DOC "Path of SDK subfolder of itom root (build) directory")
+endif(NOT EXISTS ${ITOM_SDK_DIR})
+
+if(NOT EXISTS ${ITOM_SDK_DIR})
+    message(FATAL_ERROR "ITOM_SDK_DIR is invalid. Provide itom SDK directory path first")
+endif(NOT EXISTS ${ITOM_SDK_DIR})
+
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${PROJECT_SOURCE_DIR}
@@ -17,10 +28,13 @@ set(CMAKE_MODULE_PATH
 # to always look for includes there:
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-include("ItomBuildMacros")
-itom_init_designerplugin_library(${target_name})
 
 find_package(ITOM_SDK COMPONENTS itomCommonLib REQUIRED)
+include(ItomBuildMacros)
+
+itom_init_cmake_policy(3.12)
+itom_init_designerplugin_library(${target_name})
+
 itom_find_package_qt(ON Core Widgets PrintSupport Xml Designer Widgets Svg OpenGL Concurrent)
 
 add_definitions(-DQWT_DLL)
@@ -59,7 +73,7 @@ set(qwt_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_spectrocurve.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_graphicitem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_spectrogram.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_glcanvas.h
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_glcanvas.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_svgitem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_directpainter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_textlabel.h
@@ -269,7 +283,7 @@ set(qwt_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_tradingcurve.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_directpainter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_textlabel.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_glcanvas.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_glcanvas.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_svgitem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_graphicitem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/qwt_plot_spectrogram.cpp

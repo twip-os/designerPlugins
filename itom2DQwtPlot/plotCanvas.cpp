@@ -111,7 +111,7 @@ PlotCanvas::PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * pa
     canvas()->setCursor(Qt::ArrowCursor);
 
     m_pPlotGrid = new QwtPlotGrid();
-    m_pPlotGrid->setZ(10.0);
+    m_pPlotGrid->setZ(11.0);
     m_pPlotGrid->attach(this);
     setGridStyle(m_gridStyle);
     m_pPlotGrid->setMajorPen(Qt::gray, 1);
@@ -119,7 +119,7 @@ PlotCanvas::PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * pa
 
     //main item on canvas -> the data object
     m_dObjItem = new DataObjItem("Data Object");
-    m_dObjItem->setZ(11.0);
+    m_dObjItem->setZ(10.0);
     m_dObjItem->setRenderThreadCount(0); //uses ideal thread count
     //m_dObjItem->setColorMap(new QwtLinearColorMap(QColor::fromRgb(0,0,0), QColor::fromRgb(255,255,255), QwtColorMap::Indexed));
     m_rasterData = new DataObjRasterData(m_pData);
@@ -325,6 +325,7 @@ PlotCanvas::PlotCanvas(PlotCanvas::InternalData *m_pData, ItomQwtDObjFigure * pa
     m_pContextMenu->addAction(mainTb->toggleViewAction());
 
 	setAxisScaleEngine(QwtPlot::yRight, new QwtLinearScaleEngine());
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -451,11 +452,11 @@ void PlotCanvas::refreshStyles(bool overwriteDesignableProperties)
 
             colorMap = apiGetFigureSetting(parent(), "defaultColorMap", colorMap, NULL).value<QString>();
             setColorMap(colorMap);
+
+            setKeepAspectRatio(apiGetFigureSetting(parent(), "keepAspectRatio", false, NULL).value<bool>());
+            m_pData->m_yaxisFlipped = apiGetFigureSetting(parent(), "yAxisFlipped", false, NULL).value<bool>();
         }
 
-        setKeepAspectRatio(apiGetFigureSetting(parent(), "keepAspectRatio", false, NULL).value<bool>());
-        m_pData->m_yaxisFlipped = apiGetFigureSetting(parent(), "yAxisFlipped", false, NULL).value<bool>();
-        
     }
 
     if (inverseColor1().isValid())
@@ -469,6 +470,8 @@ void PlotCanvas::refreshStyles(bool overwriteDesignableProperties)
         //trackerPen.setColor(inverseColor0());
         centerMarkerPen.setColor(inverseColor0());
         zStackMarkerPen.setColor(inverseColor0());
+        m_pPlotGrid->setMajorPen(inverseColor0(), 1);
+        m_pPlotGrid->setMinorPen(inverseColor0(), 1, Qt::DashLine);
         if (m_dObjItem)
         {
            contourPen = m_dObjItem->defaultContourPen();//hold setting from default pen
@@ -1015,7 +1018,7 @@ ito::RetVal PlotCanvas::cutVolume(const ito::DataObject* dataObj, const QVector<
             double startPhys = dataObj->getPixToPhys(d - 2, pxY1, _unused);
             double right = dataObj->getPixToPhys(d - 2, pxY2, _unused);
             double scale = xSize > 1 ? (right - startPhys) / (float)(xSize - 1) : 0.0;
-            
+
             m_dObjVolumeCut.setAxisScale(1, scale);
             m_dObjVolumeCut.setAxisOffset(1, -startPhys/scale);
         }
@@ -1297,7 +1300,7 @@ void PlotCanvas::refreshPlot(const ito::DataObject *dObj,int plane /*= -1*/, con
     m_isRefreshingPlot = true;
 
     ito::uint8 updateState = 0; //changeNo (0): nothing changed, changeAppearance (1): appearance changed (yAxisFlipped, cmplxFlag, plane...), changeData (2): data changed (dimensions, sizes, other data object...)
-    
+
     m_dObjPtr = dObj;
 
     //QString valueLabel, axisLabel, title;
@@ -1350,7 +1353,7 @@ void PlotCanvas::refreshPlot(const ito::DataObject *dObj,int plane /*= -1*/, con
                         descr.append(" [" + unit + "]");
                         break;
                 }
-                
+
             }
             m_pData->m_valueLabelDObj = QString::fromLatin1(descr.data());
 
@@ -1479,12 +1482,21 @@ void PlotCanvas::refreshPlot(const ito::DataObject *dObj,int plane /*= -1*/, con
 
         updateScaleValues(false, updateState & changeData); //no replot here
         updateAxes();
+        updateZoomOptionState();
 
 
         //set the base view for the zoomer (click on 'house' symbol) to the current representation (only if data changed)
         if (updateState & changeData)
         {
-            zoomer()->setZoomBase(false); //do not replot in order to not destroy the recently set scale values, a rescale is executed at the end though
+            QStack<QRectF> stack; //we can not call setZoomBase since this scales to the current scalingRect, leading to a wrong zoomStack in case of keepAspectRatio is set by the api
+            QRectF boundingRect(
+                m_pData->m_xaxisMin,
+                m_pData->m_yaxisMin,
+                (m_pData->m_xaxisMax - m_pData->m_xaxisMin),
+                (m_pData->m_yaxisMax - m_pData->m_yaxisMin));
+            stack.push(boundingRect);
+            zoomer()->setZoomStack(stack, -1);
+            updateZoomOptionState();
         }
         else
         {
@@ -1577,7 +1589,7 @@ bool PlotCanvas::setColorMap(const QString &colormap /*= "__next__"*/)
 	ItomColorMap *colorBarMap = NULL;
     ito::ItomPalette newPalette;
     ito::RetVal retval(ito::retOk);
-    int numPalettes = 1;    
+    int numPalettes = 1;
 
     if(!ito::ITOM_API_FUNCS_GRAPH)
     {
@@ -2104,7 +2116,7 @@ void PlotCanvas::keyPressEvent (QKeyEvent * event)
             replot();
         }
     }
-    
+
     if (!event->isAccepted())
     {
         ItomQwtPlot::keyPressEvent(event);
@@ -2125,7 +2137,7 @@ void PlotCanvas::setColorBarVisible(bool visible)
 {
     if (!m_pData)
         return;
-    
+
     m_pData->m_colorBarVisible = visible;
     enableAxis(QwtPlot::yRight, visible);
 }
@@ -2135,7 +2147,7 @@ void PlotCanvas::updateLabels()
 {
     if (!m_pData)
         return;
-    
+
     if (m_pData->m_autoValueLabel)
     {
         setAxisTitle(QwtPlot::yRight, m_pData->m_valueLabelDObj);
@@ -2180,7 +2192,7 @@ void PlotCanvas::synchronizeScaleValues()
 {
     if (!m_pData)
         return;
-    
+
     QwtInterval ival = m_rasterData->interval(Qt::ZAxis);
     m_pData->m_valueMin = ival.minValue();
     m_pData->m_valueMax = ival.maxValue();
@@ -2188,7 +2200,7 @@ void PlotCanvas::synchronizeScaleValues()
     if (m_pData->m_xaxisScaleAuto)
     {
         ival = m_rasterData->interval(Qt::XAxis);
-        
+
     }
     else
     {
@@ -2220,7 +2232,6 @@ void fixZeroInterval(QwtInterval &interval)
         interval = QwtInterval(interval.minValue() - 0.5, interval.maxValue() + 0.5);
     }
 }
-
 //----------------------------------------------------------------------------------------------------------------------------------
 /*
 @param doReplot forces a replot of the content
@@ -2232,7 +2243,7 @@ void PlotCanvas::updateScaleValues(bool doReplot /*= true*/, bool doZoomBase /*=
 
     if (!m_pData)
         return;
-    
+
     QwtInterval ival;
     if (m_pData->m_valueScaleAuto)
     {
@@ -2312,17 +2323,23 @@ void PlotCanvas::updateScaleValues(bool doReplot /*= true*/, bool doZoomBase /*=
 
             QRectF zoom(m_pData->m_xaxisMin, m_pData->m_yaxisMin, (m_pData->m_xaxisMax - m_pData->m_xaxisMin), (m_pData->m_yaxisMax - m_pData->m_yaxisMin));
             zoom = zoom.normalized();
-            
-            if (zoom == zoomer()->zoomRect())
+            QRectF rect = zoomer()->zoomRect();
+            bool isEqualRect = true;
+            qreal x1, x2, y1, y2 = 0;
+            qreal zoomx1, zoomx2, zoomy1, zoomy2 = 0;
+            rect.getCoords(&x1, &y1, &x2, &y2);
+            zoom.getCoords(&zoomx1, &zoomy1, &zoomx2, &zoomy2);
+
+            isEqualRect = (x1 - zoomx1) < std::numeric_limits<qreal>::epsilon();
+            isEqualRect &= (y1 - zoomy1) < std::numeric_limits<qreal>::epsilon();
+            isEqualRect &= (y2 - zoomy2) < std::numeric_limits<qreal>::epsilon();
+            isEqualRect &= (x2 - zoomx2) < std::numeric_limits<qreal>::epsilon();
+
+            if (!isEqualRect)
             {
                 zoomer()->zoom(zoom);
-                zoomer()->rescale(false); //zoom of zoomer does not call rescale in this case, therefore we do it here
             }
-            else
-            {
-                zoomer()->appendZoomStack(zoom);
-            }
-
+            zoomer()->rescale(false); //zoom of zoomer does not call rescale in this case, therefore we do it here
         }
     }
 
@@ -2335,7 +2352,35 @@ void PlotCanvas::updateScaleValues(bool doReplot /*= true*/, bool doZoomBase /*=
 //----------------------------------------------------------------------------------------------------------------------------------
 void PlotCanvas::home()
 {
-    zoomer()->zoom(0);
+    QRectF boundingRect(
+        m_pData->m_xaxisMin,
+        m_pData->m_yaxisMin,
+        (m_pData->m_xaxisMax - m_pData->m_xaxisMin),
+        (m_pData->m_yaxisMax - m_pData->m_yaxisMin));
+    QStack<QRectF> stack = zoomer()->zoomStack();
+    if (boundingRect != zoomer()->zoomRect())
+    {
+        zoomer()->zoom(boundingRect);
+    }
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+void PlotCanvas::zoomUndo() const
+{
+    const unsigned int index = zoomer()->zoomRectIndex();
+    if (index > 0)
+    {
+        zoomer()->zoom(-1);
+    }
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+void PlotCanvas::zoomRedo() const
+{
+    const unsigned int index = zoomer()->zoomRectIndex();
+    if (index < zoomer()->zoomStack().length()-1)
+    {
+        zoomer()->zoom(1);
+    }
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -2580,7 +2625,7 @@ void PlotCanvas::zStackCutTrackerAppended(const QPoint &pt)
 
     if (state() == stateStackCut)
     {
-        
+
         QPointF ptScale;
         ptScale.setY(invTransform(QwtPlot::yLeft, pt.y()));
         ptScale.setX(invTransform(QwtPlot::xBottom, pt.x()));
@@ -2603,7 +2648,7 @@ void PlotCanvas::zStackCutTrackerAppended(const QPoint &pt)
 			}
 
             replot();
-        }   
+        }
     }
 }
 
@@ -2649,7 +2694,7 @@ void PlotCanvas::zStackCutTrackerMoved(const QPoint &pt)
 			}
 
             replot();
-        }    
+        }
     }
 }
 
@@ -2908,7 +2953,7 @@ void PlotCanvas::lineCutAppendedPhys(const QPointF &pt)
             {
                 vec = QVector4D(pts[0].x(), pts[0].y(), pts[1].x(), pts[1].y());
             }
-            
+
             p->pickerWidget()->updateChildPlot(childFigureUID, ito::Shape::Line, vec);
         }
 
@@ -3155,7 +3200,7 @@ void PlotCanvas::removeChildPlotIndicators(bool lineChildPlot, bool zStackChildP
     if (zStackChildPlot)
     {
         m_pStackCutMarker->setVisible(false);
-        
+
         if (resetState && state() == stateStackCut)
         {
             setState(stateIdle);
@@ -3172,7 +3217,7 @@ void PlotCanvas::removeChildPlotIndicators(bool lineChildPlot, bool zStackChildP
             setState(stateIdle);
         }
     }
-    
+
     if (volumeChildPlot)
     {
         m_pVolumeCutLine->setVisible(false);
@@ -3192,7 +3237,7 @@ QSharedPointer<ito::DataObject> PlotCanvas::getDisplayed()
 {
     if (!m_rasterData)
     {
-        return QSharedPointer<ito::DataObject>(); 
+        return QSharedPointer<ito::DataObject>();
     }
 
     return m_rasterData->rasterToObject(axisInterval(QwtPlot::xBottom), axisInterval(QwtPlot::yLeft), ItomQwtPlot::m_copyDisplayedAsComplex, PlotCanvas::getComplexStyle());
@@ -3203,9 +3248,9 @@ QSharedPointer<ito::DataObject> PlotCanvas::getDisplayedOverlayObject()
 {
     if (!m_rasterOverlayData)
     {
-        return QSharedPointer<ito::DataObject>(); 
+        return QSharedPointer<ito::DataObject>();
     }
-    
+
     return m_rasterOverlayData->rasterToObject(axisInterval(QwtPlot::xBottom), axisInterval(QwtPlot::yLeft), ItomQwtPlot::m_copyDisplayedAsComplex, PlotCanvas::getComplexStyle());
 }
 
@@ -3214,7 +3259,7 @@ QSharedPointer<ito::DataObject> PlotCanvas::getOverlayObject()
 {
     if (!m_rasterOverlayData)
     {
-        return QSharedPointer<ito::DataObject>(); 
+        return QSharedPointer<ito::DataObject>();
     }
     return m_rasterOverlayData->rasterToObject();
 }
@@ -3270,7 +3315,7 @@ template<typename _Tp> void parseContourLevels(const QSharedPointer<ito::DataObj
 void PlotCanvas::setContourLevels(QSharedPointer<ito::DataObject> contourLevels)
 {
     ito::RetVal retval(ito::retOk);
-    
+
     int trueDims = 0;
     bool isInPlane = true;
 
@@ -3432,9 +3477,9 @@ bool PlotCanvas::setContourColorMap(const QString& name /*=__next__*/)
     else
     {
         retval += apiPaletteGetColorBarName(name, newPalette);
-        
+
         retval += apiPaletteGetColorBarIdxFromName(name, idx);
-        
+
     }
 
     if (retval.containsError() && retval.errorMessage() != NULL)
@@ -3505,7 +3550,7 @@ void PlotCanvas::getMinMaxLoc(double &min, ito::uint32 *minLoc, double &max, ito
         max = std::numeric_limits<double>::quiet_NaN();
 
         return;
-    }   
+    }
 
     m_rasterData->getMinMaxLoc(min, minLoc, max, maxLoc);
 
@@ -3521,7 +3566,7 @@ void PlotCanvas::getMinMaxPhysLoc(double &min, double *minPhysLoc, double &max, 
         max = std::numeric_limits<double>::quiet_NaN();
 
         return;
-    }   
+    }
 
     ito::uint32 minLoc[3];
     ito::uint32 maxLoc[3];
@@ -3530,12 +3575,12 @@ void PlotCanvas::getMinMaxPhysLoc(double &min, double *minPhysLoc, double &max, 
     bool check;
 
     minPhysLoc[0] = minLoc[0];
-    minPhysLoc[1] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-2, minLoc[1], check); 
-    minPhysLoc[2] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-1, minLoc[2], check); 
+    minPhysLoc[1] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-2, minLoc[1], check);
+    minPhysLoc[2] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-1, minLoc[2], check);
 
     maxPhysLoc[0] = maxLoc[0];
-    maxPhysLoc[1] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-2, maxLoc[1], check); 
-    maxPhysLoc[2] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-1, maxLoc[2], check); 
+    maxPhysLoc[1] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-2, maxLoc[1], check);
+    maxPhysLoc[2] = m_dObjPtr->getPixToPhys(m_dObjPtr->getDims()-1, maxLoc[2], check);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------

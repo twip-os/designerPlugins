@@ -1,19 +1,18 @@
+cmake_minimum_required(VERSION 3.12...3.24)
+
 set(target_name plotlyPlot)
 
-cmake_minimum_required(VERSION 3.1...3.15)
-
-set(ITOM_SDK_DIR NOTFOUND CACHE PATH "path of SDK subfolder of itom root (build) directory")
-
 #this is to automatically detect the SDK subfolder of the itom build directory.
-find_path(ITOM_SDK_DIR "cmake/itom_sdk.cmake"
-    HINTS "C:/itom/build/itom/SDK"
-          "${CMAKE_CURRENT_BINARY_DIR}/../../itom/SDK"
-    DOC "path of SDK subfolder of itom root (build) directory")
+if(NOT EXISTS ${ITOM_SDK_DIR})
+    find_path(ITOM_SDK_DIR "cmake/itom_sdk.cmake"
+    HINTS "$ENV{ITOM_SDK_ROOT}"
+          "${CMAKE_CURRENT_BINARY_DIR}/../itom/SDK"
+    DOC "Path of SDK subfolder of itom root (build) directory")
+endif(NOT EXISTS ${ITOM_SDK_DIR})
 
-if(NOT ITOM_SDK_DIR)
-    message(SEND_ERROR "ITOM_SDK_DIR is invalid. Provide itom SDK directory path first")
-endif()
-
+if(NOT EXISTS ${ITOM_SDK_DIR})
+    message(FATAL_ERROR "ITOM_SDK_DIR is invalid. Provide itom SDK directory path first")
+endif(NOT EXISTS ${ITOM_SDK_DIR})
 # ...which contains useful scripts for completing this file
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ITOM_SDK_DIR}/cmake)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -24,7 +23,7 @@ itom_init_cmake_policy(3.12)
 itom_init_designerplugin_library(${target_name})
 
 find_package(ITOM_SDK COMPONENTS dataobject itomCommonLib itomCommonQtLib itomWidgets itomCommonPlotLib REQUIRED)
-itom_find_package_qt(ON Core Xml PrintSupport UiTools Widgets Svg OpenGL Designer LinguistTools WebEngine WebEngineWidgets)
+itom_find_package_qt(ON Core Xml PrintSupport UiTools Widgets Svg OpenGL Designer LinguistTools WebEngineWidgets)
 
 add_definitions(-DITOMSHAREDDESIGNER)
 

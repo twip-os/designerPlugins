@@ -10,7 +10,7 @@
     under the terms of the GNU Library General Public Licence as published by
     the Free Software Foundation; either version 2 of the Licence, or (at
     your option) any later version.
-   
+
     In addition, as a special exception, the Institut fuer Technische
     Optik (ITO) gives you certain additional rights.
     These rights are described in the ITO LGPL Exception version 1.0,
@@ -32,12 +32,12 @@
 
 #define PLUGIN_VERSION_MAJOR 3
 #define PLUGIN_VERSION_MINOR 10
-#define PLUGIN_VERSION_PATCH 1
+#define PLUGIN_VERSION_PATCH 2
 #define PLUGIN_VERSION_REVISION 0
 #define PLUGIN_VERSION        CREATE_VERSION(PLUGIN_VERSION_MAJOR,PLUGIN_VERSION_MINOR,PLUGIN_VERSION_PATCH)
 #define PLUGIN_VERSION_STRING CREATE_VERSION_STRING(PLUGIN_VERSION_MAJOR,PLUGIN_VERSION_MINOR,PLUGIN_VERSION_PATCH)
 #define PLUGIN_COMPANY        "Institut fuer Technische Optik, University Stuttgart"
-#define PLUGIN_COPYRIGHT      "(C) 2022, ITO, University Stuttgart"
+#define PLUGIN_COPYRIGHT      "(C) 2023, ITO, University Stuttgart"
 #define PLUGIN_NAME           "itom1DQwtPlot"
 
 //----------------------------------------------------------------------------------------------------------------------------------
