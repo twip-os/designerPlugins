@@ -27,7 +27,7 @@ itom_init_designerplugin_library(${target_name})
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(ITOM_SDK COMPONENTS dataobject itomCommonLib itomCommonQtLib REQUIRED)
-itom_find_package_qt(ON Core Widgets UiTools Svg Xml Designer LinguistTools)
+itom_find_package_qt(ON Core Widgets UiTools Svg Xml LinguistTools)
 
 
 if(BUILD_MOTORCTRL_3DCONNEXION)

@@ -38,7 +38,6 @@ itom_find_package_qt(ON
     Widgets
     Xml
     Svg
-    Designer
     PrintSupport
     Concurrent
     OpenGL

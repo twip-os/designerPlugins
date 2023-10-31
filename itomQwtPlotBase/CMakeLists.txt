@@ -38,7 +38,6 @@ itom_find_package_qt(ON
     Core
     Widgets
     Xml
-    Designer
     PrintSupport
     Svg
     Concurrent

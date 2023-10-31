@@ -24,7 +24,7 @@ itom_init_cmake_policy(3.12)
 itom_init_designerplugin_library(${target_name})
 
 find_package(ITOM_SDK COMPONENTS dataobject itomCommonLib itomCommonQtLib itomCommonPlotLib itomWidgets itomShapeLib REQUIRED)
-itom_find_package_qt(ON Core Widgets Xml Designer PrintSupport Svg Concurrent OpenGL LinguistTools)
+itom_find_package_qt(ON Core Widgets Xml PrintSupport Svg Concurrent OpenGL LinguistTools)
 
 add_definitions(-DITOMSHAREDDESIGNER)
 add_definitions(-DQWT_DLL)
