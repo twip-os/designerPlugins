@@ -35,7 +35,7 @@ include(ItomBuildMacros)
 itom_init_cmake_policy(3.12)
 itom_init_designerplugin_library(${target_name})
 
-itom_find_package_qt(ON Core Widgets PrintSupport Xml Svg OpenGL OpenGLWidgets Concurrent)
+itom_find_package_qt(ON Core Widgets PrintSupport Xml Designer Widgets Svg OpenGL Concurrent)
 
 add_definitions(-DQWT_DLL)
 add_definitions(-DQWT_MAKEDLL)

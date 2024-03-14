@@ -24,7 +24,7 @@ itom_init_cmake_policy(3.12)
 itom_init_designerplugin_library(${target_name})
 
 find_package(ITOM_SDK COMPONENTS dataobject itomCommonLib itomCommonQtLib itomCommonPlotLib itomShapeLib REQUIRED)
-itom_find_package_qt(ON Core Widgets Xml LinguistTools)
+itom_find_package_qt(ON Core Widgets Xml Designer LinguistTools)
 
 
 add_definitions(-DITOMSHAREDDESIGNER)

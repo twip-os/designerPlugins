@@ -59,7 +59,7 @@ else()
     find_package(ITOM_SDK COMPONENTS dataobject itomCommonLib itomCommonQtLib itomCommonPlotLib REQUIRED)
 endif()
 
-itom_find_package_qt(ON Core Widgets Xml LinguistTools OpenGL OpenGLWidgets OpenGLExtensions)
+itom_find_package_qt(ON Core Widgets Xml Designer LinguistTools OpenGL OpenGLExtensions)
 find_package(OpenCV COMPONENTS core imgproc REQUIRED)
 find_package(OpenGL REQUIRED)
 
